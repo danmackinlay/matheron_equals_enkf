@@ -1,0 +1,17 @@
+name: da-gp
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy  
+  - scikit-learn
+  - matplotlib
+  - netcdf4
+  - mpi4py
+  - mpich
+  - pip
+  - pip:
+    - pytest
+    - ruff
+    - mypy

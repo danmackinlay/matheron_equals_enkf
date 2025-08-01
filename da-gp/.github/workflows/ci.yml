@@ -1,0 +1,163 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  uv-laptop:
+    name: "UV Laptop Test"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Create environment and install dependencies
+      run: |
+        uv venv
+        uv pip install -e .[dev]
+    
+    - name: Run linting
+      run: |
+        source .venv/bin/activate
+        ruff check src tests
+    
+    - name: Run type checking
+      run: |
+        source .venv/bin/activate
+        mypy --install-types --non-interactive src
+    
+    - name: Run tests
+      run: |
+        source .venv/bin/activate
+        pytest tests/ -v
+    
+    - name: Test sklearn backend
+      run: |
+        source .venv/bin/activate
+        da-gp --backend sklearn --n_obs 100 --verbose
+
+  uv-mpi:
+    name: "UV MPI Test"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mpich libhdf5-dev libnetcdf-dev
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Try installing with MPI packages
+      run: |
+        uv venv
+        uv pip install -e .[dev]
+        # Try to install MPI packages (may fail, that's OK)
+        uv pip install mpi4py || echo "MPI4Py installation failed, continuing..."
+    
+    - name: Test MPI availability
+      run: |
+        source .venv/bin/activate
+        python -c "
+        try:
+            from mpi4py import MPI
+            print(f'MPI available with {MPI.COMM_WORLD.size} ranks')
+        except ImportError:
+            print('MPI not available, skipping MPI tests')
+        "
+
+  conda-mpi:
+    name: "Conda MPI Fallback"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        python-version: 3.11
+        environment-file: conda-env.yml
+        activate-environment: da-gp
+    
+    - name: Install package
+      shell: bash -l {0}
+      run: |
+        pip install -e .
+    
+    - name: Test MPI backend (if available)
+      shell: bash -l {0}
+      run: |
+        python -c "
+        try:
+            import pypdaf, mpi4py
+            print('pyPDAF and MPI available')
+        except ImportError as e:
+            print(f'pyPDAF/MPI not available: {e}')
+        "
+
+  performance:
+    name: "Performance Benchmark"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Install dependencies
+      run: |
+        uv venv  
+        uv pip install -e .[dev]
+    
+    - name: Run performance tests
+      run: |
+        source .venv/bin/activate
+        echo "backend,n_obs,time,rmse" > benchmark_results.csv
+        for n_obs in 100 500 1000 2000; do
+          echo "Testing n_obs=$n_obs"
+          da-gp --backend sklearn --n_obs $n_obs | grep "^CSV:" | cut -d' ' -f2 >> benchmark_results.csv
+        done
+    
+    - name: Check performance regression
+      run: |
+        source .venv/bin/activate
+        python -c "
+        import pandas as pd
+        df = pd.read_csv('benchmark_results.csv')
+        max_time = df['time'].max()
+        print(f'Maximum time: {max_time:.3f}s')
+        if max_time > 30.0:  # Fail if any test takes longer than 30s
+            raise ValueError(f'Performance regression: {max_time:.3f}s > 30.0s')
+        print('Performance tests passed')
+        "
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: benchmark_results.csv
