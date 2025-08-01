@@ -16,6 +16,8 @@ The project uses `uv` as the Python package manager. Key commands:
 - **Run the main experiment**: `uv run python main.py`
 - **Add new dependencies**: `uv add <package-name>`
 
+Note: The `da-gp/` subdirectory also uses `uv` for package management. Use `uv run` to execute Python commands within the virtual environment instead of manually activating it.
+
 ## Code Architecture
 
 The repository is structured as a single-file experiment (`main.py`) with the following sections:
