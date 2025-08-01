@@ -18,8 +18,8 @@ def test_observation_rmse():
     residuals = obs - truth_obs
     empirical_std = np.std(residuals)
     
-    # Empirical std should be close to noise_std (within 3-sigma bounds)
-    assert empirical_std < 3 * noise_std / np.sqrt(len(obs))
+    # Empirical std should be close to noise_std (within reasonable bounds)
+    assert 0.05 < empirical_std < 0.2  # Noise std is 0.1, allow reasonable range
 
 
 def test_sklearn_rmse_reasonable():

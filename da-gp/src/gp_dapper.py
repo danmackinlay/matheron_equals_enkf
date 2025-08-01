@@ -1,7 +1,7 @@
 """DAPPER backend for data assimilation."""
 
 import numpy as np
-from .gp_common import X_grid, draw_prior, make_obs_mask, GRID_SIZE
+from .gp_common import X_grid, draw_prior, make_obs_mask, GRID_SIZE, generate_truth, make_observations
 
 try:
     from dapper import da_methods, mods
@@ -20,12 +20,16 @@ def obs_op(state: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return state[..., mask]  # DAPPER auto-vectors across ensemble
 
 
-def run(n_ens: int = 40, n_obs: int = 5_000) -> dict:
+def run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None) -> dict:
     """Run DAPPER EnKF assimilation."""
     if not DAPPER_AVAILABLE:
         raise ImportError("DAPPER not available. Install with: uv pip install 'dapper>=1.0'")
     
-    mask = make_obs_mask(n_obs)
+    # Use provided data or generate synthetic experiment
+    if truth is None or mask is None or obs is None:
+        mask = make_obs_mask(n_obs)
+        truth = generate_truth()
+        obs = make_observations(truth, mask, noise_std=0.1)
     
     # Create Hidden Markov Model
     HMM = mods.HiddenMarkovModel(

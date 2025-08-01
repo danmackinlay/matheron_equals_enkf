@@ -3,13 +3,55 @@
 import argparse
 import time
 import sys
-from typing import Any, Dict
+import numpy as np
+from typing import Any, Dict, Tuple
 
 try:
     from mpi4py import MPI
     MPI_AVAILABLE = True
 except ImportError:
     MPI_AVAILABLE = False
+
+
+def _load_backend(backend: str, n_obs: int, n_ens: int = 40) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Load backend and return posterior statistics for plotting.
+    
+    Returns:
+        mean: Posterior mean
+        lower: Lower confidence bound (mean - 2*std)
+        upper: Upper confidence bound (mean + 2*std)
+        x: Grid coordinates
+    """
+    from .gp_common import X_grid
+    
+    if backend == "sklearn":
+        from . import gp_sklearn as module
+        result = module.run(n_obs=n_obs, n_ens=n_ens)
+        mean = result['posterior_mean']
+        std = result.get('posterior_std', np.ones_like(mean) * 0.1)
+        
+    elif backend == "dapper":
+        from . import gp_dapper as module
+        result = module.run(n_ens=n_ens, n_obs=n_obs)
+        mean = result['posterior_mean']
+        ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(mean))))
+        std = np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
+        
+    elif backend == "pdaf":
+        from . import gp_pdaf as module
+        result = module.run(n_ens=n_ens, n_obs=n_obs)
+        mean = result['posterior_mean']
+        ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(mean))))
+        std = np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
+        
+    else:
+        raise ValueError(f"Unknown backend: {backend}")
+    
+    x = X_grid.flatten()
+    lower = mean - 2 * std
+    upper = mean + 2 * std
+    
+    return mean, lower, upper, x
 
 
 def main() -> None:

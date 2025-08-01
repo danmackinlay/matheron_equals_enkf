@@ -32,3 +32,15 @@ def make_observations(truth: np.ndarray, mask: np.ndarray, noise_std: float = 0.
     obs = truth[mask]
     noise = rng.normal(0, noise_std, size=len(obs))
     return obs + noise
+
+
+def get_truth_and_mask(n_obs: int) -> tuple[np.ndarray, np.ndarray]:
+    """Generate consistent truth and observation mask for all backends."""
+    truth = generate_truth()
+    mask = make_obs_mask(n_obs)
+    return truth, mask
+
+
+def get_observations(truth: np.ndarray, mask: np.ndarray, noise_std: float = 0.1) -> np.ndarray:
+    """Generate observations from truth and mask."""
+    return make_observations(truth, mask, noise_std)

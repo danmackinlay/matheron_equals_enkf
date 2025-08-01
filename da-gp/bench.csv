@@ -1,0 +1,4 @@
+backend,n_obs,time_s
+sklearn,100,2.287
+sklearn,500,2.146
+sklearn,1000,2.163

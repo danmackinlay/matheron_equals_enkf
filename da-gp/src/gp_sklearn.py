@@ -16,12 +16,13 @@ def obs_op(state: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return state[mask]
 
 
-def run(n_obs: int = 5_000, **kwargs) -> dict:
+def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, **kwargs) -> dict:
     """Run scikit-learn Gaussian Process regression."""
-    # Generate synthetic experiment
-    mask = make_obs_mask(n_obs)
-    truth = generate_truth()
-    obs = make_observations(truth, mask, noise_std=0.1)
+    # Use provided data or generate synthetic experiment
+    if truth is None or mask is None or obs is None:
+        mask = make_obs_mask(n_obs)
+        truth = generate_truth()
+        obs = make_observations(truth, mask, noise_std=0.1)
     
     # Create GP with fixed kernel (no optimization)
     gp = GaussianProcessRegressor(kernel=kernel, optimizer=None, alpha=0.01)
@@ -49,7 +50,10 @@ def run(n_obs: int = 5_000, **kwargs) -> dict:
     return {
         'posterior_mean': posterior_mean,
         'posterior_ensemble': posterior_samples,
+        'posterior_samples': posterior_samples,  # Required format
         'posterior_std': posterior_std,
+        'obs': obs,                              # Required format
+        'mask': mask,                            # Required format
         'rmse': rmse,
         'fit_time': fit_time,
         'predict_time': predict_time,
