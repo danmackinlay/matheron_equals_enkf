@@ -1,7 +1,4 @@
 backend,n_obs,time_s
-sklearn,1000,2.622
-dapper,1000,inf
-sklearn,2000,2.581
-dapper,2000,inf
-sklearn,5000,4.199
-dapper,5000,inf
+sklearn,1000,2.708
+sklearn,2000,2.650
+sklearn,5000,4.200

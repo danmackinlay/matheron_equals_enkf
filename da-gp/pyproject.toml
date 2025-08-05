@@ -15,10 +15,11 @@ dependencies = [
     "matplotlib",
     "netcdf4",
     "pandas>=2.3.1",
+    "dapper>=1.7,<2",
 ]
 
 [project.optional-dependencies]
-dapper = ["dapper>=1.0"]
+dapper = ["dapper>=1.7,<2"]
 pdaf = ["mpi4py"]  # pyPDAF not available in PyPI
 jax = ["jax", "jaxlib"]
 dev = ["pytest", "ruff", "mypy"]
