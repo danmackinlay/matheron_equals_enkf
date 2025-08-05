@@ -45,10 +45,15 @@ def run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np.
     # Run assimilation
     stats = filter_method.assimilate(HMM)
     
+    posterior_ensemble = stats.E.a[-1]  # Analysis ensemble at final time
+    
     return {
         'posterior_mean': stats.mu.a[-1],  # Analysis mean at final time
-        'posterior_ensemble': stats.E.a[-1],  # Analysis ensemble at final time
-        'rmse': np.sqrt(np.mean((stats.mu.a[-1] - stats.mu.f[-1])**2)),
+        'posterior_ensemble': posterior_ensemble,
+        'posterior_samples': posterior_ensemble,  # Required format (same as ensemble)
+        'obs': obs,                               # Required format
+        'mask': mask,                             # Required format
+        'rmse': np.sqrt(np.mean((stats.mu.a[-1] - truth)**2)),
         'n_ens': n_ens,
         'n_obs': n_obs,
     }

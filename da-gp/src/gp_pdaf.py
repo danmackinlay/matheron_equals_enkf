@@ -37,17 +37,22 @@ def prepost(step: int, ens_mean: np.ndarray, *_) -> None:
         print(f"Step {step}, RMSE={rmse:.3f}")
 
 
-def run(n_ens: int = 40, n_obs: int = 5_000) -> dict:
+def run(n_ens: int = 40, n_obs: int = 5_000, truth_in: np.ndarray = None, mask_in: np.ndarray = None, obs_in: np.ndarray = None) -> dict:
     """Run pyPDAF EnKF assimilation."""
     if not PDAF_AVAILABLE:
         raise ImportError("pyPDAF not available. Install with: uv pip install pyPDAF mpi4py")
     
     global mask, truth
     
-    # Generate synthetic experiment
-    mask = make_obs_mask(n_obs)
-    truth = generate_truth()
-    obs = make_observations(truth, mask)
+    # Use provided data or generate synthetic experiment
+    if truth_in is None or mask_in is None or obs_in is None:
+        mask = make_obs_mask(n_obs)
+        truth = generate_truth()
+        obs = make_observations(truth, mask)
+    else:
+        mask = mask_in
+        truth = truth_in
+        obs = obs_in
     
     # Initialize PDAF
     pf.init_filter(
@@ -64,9 +69,13 @@ def run(n_ens: int = 40, n_obs: int = 5_000) -> dict:
     result = pf.run()
     
     if comm is not None and comm.rank == 0:
+        posterior_ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(truth))))
         return {
             'posterior_mean': result.get('posterior_mean', np.zeros_like(truth)),
-            'posterior_ensemble': result.get('posterior_ensemble', np.zeros((n_ens, len(truth)))),
+            'posterior_ensemble': posterior_ensemble,
+            'posterior_samples': posterior_ensemble,  # Required format
+            'obs': obs,                               # Required format  
+            'mask': mask,                             # Required format
             'rmse': np.sqrt(np.mean((result.get('posterior_mean', truth) - truth)**2)),
             'n_ens': n_ens,
             'n_obs': n_obs,
@@ -76,6 +85,9 @@ def run(n_ens: int = 40, n_obs: int = 5_000) -> dict:
         return {
             'posterior_mean': np.array([]),
             'posterior_ensemble': np.array([]),
+            'posterior_samples': np.array([]),
+            'obs': np.array([]),
+            'mask': np.array([]),
             'rmse': 0.0,
             'n_ens': n_ens,
             'n_obs': n_obs,

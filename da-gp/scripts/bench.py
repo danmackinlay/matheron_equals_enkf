@@ -8,7 +8,7 @@ import time
 import subprocess
 from pathlib import Path
 
-BACKENDS = ["sklearn", "dapper", "pdaf"]
+DEFAULT_BACKENDS = ["sklearn", "dapper"]
 
 
 def run_once(backend: str, n_obs: int) -> float:
@@ -60,9 +60,9 @@ def main():
     parser.add_argument(
         "--backends",
         nargs="+",
-        default=BACKENDS,
-        choices=BACKENDS,
-        help="Backends to test (default: all)"
+        default=DEFAULT_BACKENDS,
+        choices=["sklearn", "dapper", "pdaf"],
+        help="Backends to test (default: sklearn dapper)"
     )
     
     args = parser.parse_args()

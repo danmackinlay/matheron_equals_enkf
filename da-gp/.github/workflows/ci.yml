@@ -27,24 +27,23 @@ jobs:
         uv pip install -e .[dev]
     
     - name: Run linting
-      run: |
-        source .venv/bin/activate
-        ruff check src tests
+      run: uv run ruff check src tests
     
     - name: Run type checking
-      run: |
-        source .venv/bin/activate
-        mypy --install-types --non-interactive src
+      run: uv run mypy --install-types --non-interactive src
     
     - name: Run tests
-      run: |
-        source .venv/bin/activate
-        pytest tests/ -v
+      run: uv run pytest tests/ -v
     
     - name: Test sklearn backend
+      run: uv run da-gp --backend sklearn --n_obs 100 --verbose
+    
+    - name: Generate figures
       run: |
-        source .venv/bin/activate
-        da-gp --backend sklearn --n_obs 100 --verbose
+        uv run python scripts/bench.py --obs_grid 1000 2000 5000 --backends sklearn
+        uv run python scripts/plot_perf.py bench.csv --backends sklearn
+        uv run python scripts/plot_posterior.py --backends sklearn --n_obs 2000
+        git diff --exit-code figures/ || echo "Figures updated"
 
   uv-mpi:
     name: "UV MPI Test"
