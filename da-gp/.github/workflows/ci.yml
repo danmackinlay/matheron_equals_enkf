@@ -40,8 +40,17 @@ jobs:
     
     - name: Generate figures
       run: |
-        uv run python scripts/bench.py --obs_grid 1000 2000 5000 --backends sklearn
-        uv run python scripts/plot_perf.py bench.csv --backends sklearn
+        # Observation sweep (fix d=2000)
+        uv run python scripts/bench.py --n_obs_grid 500 1000 2000 5000 \
+             --grid_size_fixed 2000 --backends sklearn --csv bench_obs.csv
+        uv run python scripts/plot_perf.py bench_obs.csv --x obs --backends sklearn
+        
+        # Dimension sweep (fix m=2000)
+        uv run python scripts/bench.py --dim_grid 500 1000 2000 4000 \
+             --n_obs_fixed 2000 --backends sklearn --csv bench_dim.csv
+        uv run python scripts/plot_perf.py bench_dim.csv --x dim --backends sklearn
+        
+        # Posterior plot
         uv run python scripts/plot_posterior.py --backends sklearn --n_obs 2000
         git diff --exit-code figures/ || echo "Figures updated"
 

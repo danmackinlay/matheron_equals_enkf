@@ -82,8 +82,19 @@ def main() -> None:
         action='store_true',
         help="Print detailed results"
     )
+    parser.add_argument(
+        '--grid_size',
+        type=int,
+        default=None,
+        help="State dimension d (overrides gp_common.GRID_SIZE)"
+    )
     
     args = parser.parse_args()
+    
+    # Early resize: change grid size before any backend import
+    if args.grid_size is not None:
+        import src.gp_common as gpc
+        gpc.set_grid_size(args.grid_size)
     
     # Check MPI rank for multi-process backends
     rank = 0
@@ -129,7 +140,10 @@ def main() -> None:
 
 def print_results(args: argparse.Namespace, result: Dict[str, Any], elapsed_time: float) -> None:
     """Print benchmark results."""
+    from .gp_common import GRID_SIZE
+    
     print(f"Backend: {args.backend}")
+    print(f"Grid size: {GRID_SIZE:,}")
     print(f"Observations: {args.n_obs:,}")
     print(f"Ensemble size: {args.n_ens}")
     print(f"Elapsed time: {elapsed_time:.3f}s")
@@ -144,7 +158,7 @@ def print_results(args: argparse.Namespace, result: Dict[str, Any], elapsed_time
                 print(f"  {key}: {value}")
     
     # CSV output for benchmarking
-    print(f"\nCSV: {args.backend},{args.n_obs},{elapsed_time:.6f},{result.get('rmse', 0.0):.6f}")
+    print(f"\nCSV: {args.backend},{args.n_obs},{GRID_SIZE},{elapsed_time:.6f},{result.get('rmse', 0.0):.6f}")
 
 
 if __name__ == '__main__':

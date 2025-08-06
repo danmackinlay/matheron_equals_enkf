@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from src.gp_common import GRID_SIZE, draw_prior, make_obs_mask
+from src.gp_common import GRID_SIZE, draw_prior, make_obs_mask, set_grid_size
 
 
 def _dapper_available() -> bool:
@@ -29,6 +29,36 @@ def test_draw_prior_shape():
     prior = draw_prior()
     assert prior.shape == (GRID_SIZE,)
     assert isinstance(prior, np.ndarray)
+
+
+@pytest.mark.parametrize("grid_size", [500, 1000, 4000])
+def test_draw_prior_shape_parametrized(grid_size):
+    """Test that draw_prior().shape == (d,) for different grid sizes."""
+    # Save original grid size
+    import src.gp_common as gpc
+    original_grid_size = gpc.GRID_SIZE
+    
+    try:
+        # Set new grid size
+        set_grid_size(grid_size)
+        
+        # Test FFT method
+        prior_fft = draw_prior(use_rff=False)
+        assert prior_fft.shape == (grid_size,)
+        assert isinstance(prior_fft, np.ndarray)
+        
+        # Test RFF method
+        prior_rff = draw_prior(use_rff=True)
+        assert prior_rff.shape == (grid_size,)
+        assert isinstance(prior_rff, np.ndarray)
+        
+        # Verify grid size was actually changed
+        assert gpc.GRID_SIZE == grid_size
+        assert gpc.X_grid.shape == (grid_size, 1)
+        
+    finally:
+        # Restore original grid size
+        set_grid_size(original_grid_size)
 
 
 def test_obs_mask_shape():

@@ -445,10 +445,9 @@ Both methods achieve $\operatorname{RMSE}=0.036$ against ground truth.
 
 \paragraph{Speed.}
 Figure~\ref{fig:posterior-timing} plots wall-clock time with error bars (5 trials each).
-The analytic EnKF update is consistently faster:
-at $d=800$ the EnKF takes $0.001\pm0.0002$s while
-GP regression requires $0.002\pm0.0003$s.
-Both methods scale well with the EnKF maintaining its advantage across all tested dimensions.
+The EnKF maintains computational efficiency in both regimes,
+scaling as $\mathcal{O}(dm^2)$ with observations and $\mathcal{O}(d)$ with state dimension,
+while GP regression scales as $\mathcal{O}(m^3)$ and requires full kernel matrix operations.
 
 \begin{figure}
   \centering
@@ -458,12 +457,13 @@ Both methods scale well with the EnKF maintaining its advantage across all teste
   \label{fig:posterior-samples}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{fig_posterior_timing.pdf}
-  \caption{Wall-clock to compute one posterior update
-           (log–log). Training EnKF scales as $\mathcal O(dm^{2})$, GP as $\mathcal O(m^{3})$. We set $m=d/5$.}%
-            \label{fig:posterior-timing}
+  \includegraphics[width=.48\linewidth]{figures/perf_scaling_obs.pdf}
+  \includegraphics[width=.48\linewidth]{figures/perf_scaling_dim.pdf}
+  \caption{Left: wall-clock vs observations ($d=2000$).%
+           Right: wall-clock vs state dimension ($m=2000$).}
+  \label{fig:perf-scaling}
 \end{figure}
 
 \paragraph{Take-away.}

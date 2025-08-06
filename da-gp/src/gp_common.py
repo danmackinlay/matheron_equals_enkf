@@ -20,6 +20,21 @@ _rff_W = rng.normal(0, 1/_length_scale, size=(RFF_DIM, 1))  # (m, 1)
 _rff_b = rng.uniform(0, 2*np.pi, size=RFF_DIM)              # (m,)
 
 
+def set_grid_size(new_d: int) -> None:
+    """
+    Dynamically change the grid size and update dependent globals.
+    
+    Args:
+        new_d: New grid size (state dimension)
+    """
+    global GRID_SIZE, X_grid, _rff_W, _rff_b
+    GRID_SIZE = new_d
+    X_grid = np.arange(GRID_SIZE).reshape(-1, 1)
+    # Re-draw RFF parameters for new grid size
+    _rff_W = rng.normal(0, 1/_length_scale, size=(RFF_DIM, 1))
+    _rff_b = rng.uniform(0, 2*np.pi, size=RFF_DIM)
+
+
 def _phi(x: np.ndarray) -> np.ndarray:
     """Random Fourier Features mapping: (n,1) → (n,m)"""
     return np.sqrt(2/RFF_DIM) * np.cos(x @ _rff_W.T + _rff_b)
