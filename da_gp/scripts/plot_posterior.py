@@ -58,8 +58,9 @@ def main():
     )
     parser.add_argument(
         "--show_truth",
-        action="store_true",
-        help="Show truth as thin black line"
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Show the ground truth as a thick dotted line"
     )
 
     args = parser.parse_args()

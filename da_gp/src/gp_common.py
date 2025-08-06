@@ -11,7 +11,7 @@ RFF_DIM = 1024             # number of random features (tunable)
 
 rng = np.random.default_rng(42)
 X_grid = np.arange(GRID_SIZE).reshape(-1, 1)
-kernel = 1.0 * RBF(length_scale=10.0)
+kernel = 1.0 * RBF(length_scale=30.0)
 
 # Pre-compute RFF parameters for efficiency
 # Extract length scale from the RBF kernel (kernel is 1.0 * RBF)
@@ -23,7 +23,7 @@ _rff_b = rng.uniform(0, 2*np.pi, size=RFF_DIM)              # (m,)
 def set_grid_size(new_d: int) -> None:
     """
     Dynamically change the grid size and update dependent globals.
-    
+
     Args:
         new_d: New grid size (state dimension)
     """
@@ -96,7 +96,7 @@ def draw_prior_rff() -> np.ndarray:
     """
     Draw a sample from the GP prior using Random Fourier Features.
     This provides O(dm) complexity vs O(d^3) for exact methods.
-    
+
     Returns:
         np.ndarray: A sample from the GP prior of shape (GRID_SIZE,).
     """
@@ -107,10 +107,10 @@ def draw_prior_rff() -> np.ndarray:
 def draw_prior(use_rff: bool = False) -> np.ndarray:
     """
     Draw a sample from the GP prior using FFT (default) or RFF.
-    
+
     Args:
         use_rff: If True, use Random Fourier Features. If False, use FFT method.
-        
+
     Returns:
         np.ndarray: A sample from the GP prior of shape (GRID_SIZE,).
     """

@@ -50,7 +50,7 @@ This provides a minimal, end-to-end workflow to generate a result.
 # 1. Generate a small dataset for observation scaling
 uv run python da_gp/scripts/bench.py \
     --n_obs_grid 100 500 --grid_size_fixed 1000 \
-    --backends sklearn dapper --csv data/quick_obs.csv[
+    --backends sklearn dapper --csv data/quick_obs.csv
 
 # 2. Generate a small dataset for dimension scaling
 uv run python da_gp/scripts/bench.py \
@@ -74,7 +74,7 @@ This is the complete workflow to reproduce the figures for the paper.
 ```bash
 # Step 1: Generate observation scaling data
 uv run python da_gp/scripts/bench.py \
-    --n_obs_grid 100 500 1000 2000 5000 \
+    --n_obs_grid 100 500 1000 2000 5000 10000\
     --grid_size_fixed 2000 \
     --backends sklearn dapper \
     --csv data/bench_obs.csv
