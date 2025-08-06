@@ -458,20 +458,19 @@ while GP regression scales as $\mathcal{O}(m^3)$ and requires full kernel matrix
 \end{figure}
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=.48\linewidth]{figures/perf_scaling_obs.pdf}
-  \includegraphics[width=.48\linewidth]{figures/perf_scaling_dim.pdf}
-  \caption{Left: wall-clock vs observations ($d=2000$).%
-           Right: wall-clock vs state dimension ($m=2000$).}
-  \label{fig:perf-scaling}
+  \floatconts
+    {fig:perf-scaling} % label
+    {\caption{Left: Wall-clock time vs. number of observations ($m$) for a fixed state dimension ($d=2,000$). Right: Wall-clock time vs. state dimension ($d$) for a fixed number of observations ($m=2,000$).}} % caption
+    {\centering\includegraphics[width=\linewidth]{perf_scaling.pdf}}
 \end{figure}
 
 \paragraph{Take-away.}
 A commodity EnKF implementation delivers path-wise GP draws whose accuracy matches the
 analytic update while retaining the $\mathcal O(Nd)$ cost familiar to
 the geophysical community.
-The result is a huge speed-up, with \emph{zero}
-algebraic changes to the off-the-shelf code.
+This is achievable with  with \emph{zero}
+algebraic changes to the off-the-shelf geophysical code.
+The various conveniences built into the geophysical toolkits such as covariance localisation etc are potentially useful to the GP inference community, as is the prospect of improved scaling with number of observations and dimensionality of state.
 
 
 

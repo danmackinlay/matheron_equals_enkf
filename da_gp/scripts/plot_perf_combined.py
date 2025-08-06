@@ -15,7 +15,7 @@ except ImportError:
     print("Warning: tueplots not available, using default matplotlib settings")
 
 
-def plot_ax(ax, df, x_col, fixed_col, backends):
+def plot_ax(ax, df, x_col, fixed_col, backends, colors): # Now accepts colors dict
     """Helper function to plot data on a given axes object."""
     # Determine fixed value from the data (most common value)
     if not df[fixed_col].empty:
@@ -30,8 +30,7 @@ def plot_ax(ax, df, x_col, fixed_col, backends):
         print(f"Warning: No data found for {fixed_col}={fixed_val}")
         return
 
-    # Plot styling
-    colors = {'sklearn': 'blue', 'dapper': 'red', 'pdaf': 'green'}
+    # --- FIX 1: Use the consistent color map passed from main ---
     markers = {'sklearn': 'o', 'dapper': 's', 'pdaf': '^'}
 
     for backend in backends:
@@ -43,7 +42,7 @@ def plot_ax(ax, df, x_col, fixed_col, backends):
             backend_data[x_col], backend_data['time_s'],
             marker=markers.get(backend, 'v'),
             label=backend.upper(),
-            color=colors.get(backend, 'black'),
+            color=colors.get(backend, 'black'), # Use the consistent color
             linewidth=2,
             markersize=6
         )
@@ -70,11 +69,18 @@ def main():
 
     args = parser.parse_args()
 
+    # --- FIX 1: Centralize the color scheme generation ---
+    # This ensures both plotting scripts use the same colors for the same backends.
+    color_map = plt.colormaps['viridis']
+    colors = {
+        backend: color_map(i / len(args.backends))
+        for i, backend in enumerate(args.backends)
+    }
     # Check if input files exist
     if not Path(args.obs_csv).exists():
         print(f"Error: {args.obs_csv} not found")
         return 1
-    
+
     if not Path(args.dim_csv).exists():
         print(f"Error: {args.dim_csv} not found")
         return 1
@@ -99,7 +105,6 @@ def main():
     fig, axs = plt.subplots(1, 2)
 
     try:
-        # Read data
         df_obs = pd.read_csv(args.obs_csv)
         df_dim = pd.read_csv(args.dim_csv)
     except Exception as e:
@@ -114,18 +119,18 @@ def main():
             print(f"Error: {name} missing columns: {missing}")
             return 1
 
-    # Plot observation scaling on the left
-    plot_ax(axs[0], df_obs, x_col="n_obs", fixed_col="grid_size", backends=args.backends)
+    # Plot observation scaling on the left, passing the colors dictionary
+    plot_ax(axs[0], df_obs, x_col="n_obs", fixed_col="grid_size", backends=args.backends, colors=colors)
 
-    # Plot dimension scaling on the right
-    plot_ax(axs[1], df_dim, x_col="grid_size", fixed_col="n_obs", backends=args.backends)
+    # Plot dimension scaling on the right, passing the same colors dictionary
+    plot_ax(axs[1], df_dim, x_col="grid_size", fixed_col="n_obs", backends=args.backends, colors=colors)
 
     # Adjust layout and save
     plt.tight_layout()
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(args.out, dpi=300, bbox_inches='tight')
     print(f"Saved combined performance plot to {args.out}")
-    
+
     return 0
 
 
