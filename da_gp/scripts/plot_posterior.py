@@ -74,7 +74,9 @@ def main():
 
     # --- FIX 3: Calculate dynamic alpha for posterior samples ---
     # Alpha scales down as the number of draws increases to prevent solid bands
-    dynamic_alpha = np.clip(5.0 / args.n_draws, 0.05, 0.4)
+    dynamic_alpha = np.clip(
+        1.0 / float(args.n_draws)**0.75,
+        0.01, 1.0)
 
     # Ensure output directory exists
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -127,10 +129,6 @@ def main():
         # --- FIX 2: Set high zorder to ensure observations are on top ---
         zorder=30
     )
-
-    # Plot truth (optional)
-    if args.show_truth:
-        plt.plot(x, truth, color=colors['truth'], lw=1.5, ls='--', alpha=0.8, label='True Field')
 
     # Formatting
     plt.xlabel("State Dimension (Grid Index)")
