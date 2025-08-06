@@ -6,9 +6,23 @@ from sklearn.gaussian_process.kernels import RBF
 GRID_SIZE = 2_000          # state dimension
 OBS_SITES = 5_000          # can CLI-override to 50_000+
 
+# RFF parameters
+RFF_DIM = 1024             # number of random features (tunable)
+
 rng = np.random.default_rng(42)
 X_grid = np.arange(GRID_SIZE).reshape(-1, 1)
 kernel = 1.0 * RBF(length_scale=10.0)
+
+# Pre-compute RFF parameters for efficiency
+# Extract length scale from the RBF kernel (kernel is 1.0 * RBF)
+_length_scale = kernel.k2.length_scale if hasattr(kernel, 'k2') else 10.0
+_rff_W = rng.normal(0, 1/_length_scale, size=(RFF_DIM, 1))  # (m, 1)
+_rff_b = rng.uniform(0, 2*np.pi, size=RFF_DIM)              # (m,)
+
+
+def _phi(x: np.ndarray) -> np.ndarray:
+    """Random Fourier Features mapping: (n,1) → (n,m)"""
+    return np.sqrt(2/RFF_DIM) * np.cos(x @ _rff_W.T + _rff_b)
 
 
 def draw_prior_fft() -> np.ndarray:
@@ -63,9 +77,31 @@ def draw_prior_fft() -> np.ndarray:
     return sample[:GRID_SIZE]
 
 
-def draw_prior() -> np.ndarray:
-    """Draw a sample from the GP prior."""
-    # This now calls the highly efficient FFT-based version.
+def draw_prior_rff() -> np.ndarray:
+    """
+    Draw a sample from the GP prior using Random Fourier Features.
+    This provides O(dm) complexity vs O(d^3) for exact methods.
+    
+    Returns:
+        np.ndarray: A sample from the GP prior of shape (GRID_SIZE,).
+    """
+    z = rng.standard_normal(RFF_DIM)  # a_j coefficients
+    return _phi(X_grid) @ z           # O(d m) matrix-vector product
+
+
+def draw_prior(use_rff: bool = False) -> np.ndarray:
+    """
+    Draw a sample from the GP prior using FFT (default) or RFF.
+    
+    Args:
+        use_rff: If True, use Random Fourier Features. If False, use FFT method.
+        
+    Returns:
+        np.ndarray: A sample from the GP prior of shape (GRID_SIZE,).
+    """
+    if use_rff:
+        return draw_prior_rff()
+    # default: use FFT method (same as original behavior)
     return draw_prior_fft()
 
 
