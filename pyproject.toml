@@ -3,12 +3,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "da-gp"
+name = "paper-matheron-equals-enkf"
 version = "0.1.0"
-description = "Data Assimilation vs Gaussian Processes benchmark"
+description = "Data Assimilation vs Gaussian Processes benchmark and paper"
 authors = [{name = "Dan MacKinlay", email = "dan@mackinlay.net"}]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "numpy",
     "scikit-learn",
@@ -16,6 +16,7 @@ dependencies = [
     "netcdf4",
     "pandas>=2.3.1",
     "dapper>=1.7,<2",
+    "tueplots>=0.2.1",
 ]
 
 [project.optional-dependencies]
@@ -25,21 +26,21 @@ jax = ["jax", "jaxlib"]
 dev = ["pytest", "ruff", "mypy"]
 
 [project.scripts]
-da-gp = "src.cli:main"
+da-gp = "da_gp.src.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["da-gp/src"]
+packages = ["da_gp"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90", "I", "N", "UP", "YTT", "B", "A", "C4", "DTZ", "T10", "EM", "ISC", "ICN", "G", "PIE", "T20", "PT", "Q", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "ARG", "PTH", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "PERF", "RUF"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true

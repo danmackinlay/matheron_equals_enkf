@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from src.gp_common import generate_truth, make_observations, make_obs_mask
+from da_gp.src.gp_common import generate_truth, make_observations, make_obs_mask
 
 
 def test_observation_rmse():
@@ -24,7 +24,7 @@ def test_observation_rmse():
 
 def test_sklearn_rmse_reasonable():
     """Test that sklearn GP produces reasonable RMSE."""
-    from src.gp_sklearn import run
+    from da_gp.src.gp_sklearn import run
     
     result = run(n_obs=200)  # Use enough observations for good fit
     
@@ -54,7 +54,7 @@ def test_prior_spread():
 @pytest.mark.parametrize("n_obs", [10, 100, 1000])
 def test_sklearn_scaling(n_obs):
     """Test sklearn performance scales as expected."""
-    from src.gp_sklearn import run
+    from da_gp.src.gp_sklearn import run
     import time
     
     start_time = time.perf_counter()
@@ -73,7 +73,7 @@ def test_sklearn_scaling(n_obs):
 
 def test_rmse_decreases_with_observations():
     """Test that RMSE generally decreases with more observations."""
-    from src.gp_sklearn import run
+    from da_gp.src.gp_sklearn import run
     
     # Use fixed random seed for consistency
     np.random.seed(42)

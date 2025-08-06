@@ -93,7 +93,7 @@ def main() -> None:
     
     # Early resize: change grid size before any backend import
     if args.grid_size is not None:
-        import src.gp_common as gpc
+        from . import gp_common as gpc
         gpc.set_grid_size(args.grid_size)
     
     # Check MPI rank for multi-process backends

@@ -11,19 +11,19 @@ import os
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from src.gp_common import X_grid, get_truth_and_mask, get_observations
+from da_gp.src.gp_common import X_grid, get_truth_and_mask, get_observations
 
 
 def run_backend(backend: str, truth: np.ndarray, mask: np.ndarray, obs: np.ndarray, n_obs: int, n_draws: int = 200):
     """Run a specific backend with given data."""
     if backend == "sklearn":
-        from src.gp_sklearn import run
+        from da_gp.src.gp_sklearn import run
         return run(n_obs=n_obs, truth=truth, mask=mask, obs=obs, n_ens=n_draws)
     elif backend == "dapper":
-        from src.gp_dapper import run
+        from da_gp.src.gp_dapper import run
         return run(n_ens=n_draws, n_obs=n_obs, truth=truth, mask=mask, obs=obs)
     elif backend == "pdaf":
-        from src.gp_pdaf import run
+        from da_gp.src.gp_pdaf import run
         return run(n_ens=n_draws, n_obs=n_obs, truth_in=truth, mask_in=mask, obs_in=obs)
     else:
         raise ValueError(f"Unknown backend: {backend}")
@@ -42,7 +42,7 @@ def main():
     parser.add_argument(
         "--n_obs",
         type=int,
-        default=2000,
+        default=50,
         help="Number of observations"
     )
     parser.add_argument(

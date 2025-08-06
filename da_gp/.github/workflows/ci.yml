@@ -24,34 +24,40 @@ jobs:
     - name: Create environment and install dependencies
       run: |
         uv venv
-        uv pip install -e .[dev]
+        uv pip install -e .[dev,dapper]
     
     - name: Run linting
-      run: uv run ruff check src tests
+      run: uv run ruff check da_gp/src da_gp/tests
     
     - name: Run type checking
-      run: uv run mypy --install-types --non-interactive src
+      run: uv run mypy --install-types --non-interactive da_gp/src
     
     - name: Run tests
-      run: uv run pytest tests/ -v
+      run: uv run pytest da_gp/tests/ -v
     
     - name: Test sklearn backend
       run: uv run da-gp --backend sklearn --n_obs 100 --verbose
     
     - name: Generate figures
       run: |
+        # Ensure the output directories exist
+        mkdir -p data figures
+
         # Observation sweep (fix d=2000)
-        uv run python scripts/bench.py --n_obs_grid 500 1000 2000 5000 \
-             --grid_size_fixed 2000 --backends sklearn --csv bench_obs.csv
-        uv run python scripts/plot_perf.py bench_obs.csv --x obs --backends sklearn
-        
+        uv run python da_gp/scripts/bench.py --n_obs_grid 500 1000 2000 5000 \
+             --grid_size_fixed 2000 --backends sklearn dapper --csv data/bench_obs.csv
+
         # Dimension sweep (fix m=2000)
-        uv run python scripts/bench.py --dim_grid 500 1000 2000 4000 \
-             --n_obs_fixed 2000 --backends sklearn --csv bench_dim.csv
-        uv run python scripts/plot_perf.py bench_dim.csv --x dim --backends sklearn
-        
+        uv run python da_gp/scripts/bench.py --dim_grid 500 1000 2000 4000 \
+             --n_obs_fixed 2000 --backends sklearn dapper --csv data/bench_dim.csv
+
+        # Generate combined performance plot
+        uv run python da_gp/scripts/plot_perf_combined.py data/bench_obs.csv data/bench_dim.csv
+
         # Posterior plot
-        uv run python scripts/plot_posterior.py --backends sklearn --n_obs 2000
+        uv run python da_gp/scripts/plot_posterior.py --backends sklearn --n_obs 50
+
+        # This check now correctly targets the root figures directory
         git diff --exit-code figures/ || echo "Figures updated"
 
   uv-mpi:

@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from src.gp_common import GRID_SIZE, draw_prior, make_obs_mask, set_grid_size
+from da_gp.src.gp_common import GRID_SIZE, draw_prior, make_obs_mask, set_grid_size
 
 
 def _dapper_available() -> bool:
@@ -35,7 +35,7 @@ def test_draw_prior_shape():
 def test_draw_prior_shape_parametrized(grid_size):
     """Test that draw_prior().shape == (d,) for different grid sizes."""
     # Save original grid size
-    import src.gp_common as gpc
+    import da_gp.src.gp_common as gpc
     original_grid_size = gpc.GRID_SIZE
     
     try:
@@ -72,7 +72,7 @@ def test_obs_mask_shape():
 
 def test_sklearn_backend_shapes():
     """Test sklearn backend output shapes."""
-    from src.gp_sklearn import run
+    from da_gp.src.gp_sklearn import run
     
     n_obs = 50
     n_ens = 10
@@ -93,7 +93,7 @@ def test_sklearn_backend_shapes():
 )
 def test_dapper_backend_shapes():
     """Test DAPPER backend output shapes."""
-    from src.gp_dapper import run, init_state
+    from da_gp.src.gp_dapper import run, init_state
     
     n_obs = 50
     n_ens = 10
@@ -118,7 +118,7 @@ def test_dapper_backend_shapes():
 )  
 def test_pdaf_backend_shapes():
     """Test pyPDAF backend shapes (basic import test)."""
-    from src.gp_pdaf import init_state_ens
+    from da_gp.src.gp_pdaf import init_state_ens
     
     # Test ensemble member initialization
     state = init_state_ens()

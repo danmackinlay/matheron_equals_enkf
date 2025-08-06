@@ -6,7 +6,7 @@ import pytest
 
 def test_backends_match():
     """Test that different backends produce consistent results."""
-    from src.cli import _load_backend
+    from da_gp.src.cli import _load_backend
     
     # Test with moderate number of observations
     n_obs = 300
@@ -28,7 +28,7 @@ def test_backends_match():
 
 def test_backend_output_format():
     """Test that backends return required format."""
-    from src.gp_sklearn import run as run_sklearn
+    from da_gp.src.gp_sklearn import run as run_sklearn
     
     result = run_sklearn(n_obs=100)
     
@@ -46,14 +46,14 @@ def test_backend_output_format():
 
 def test_truth_and_mask_consistency():
     """Test that truth/mask generation is consistent with same function calls."""
-    from src.gp_common import get_truth_and_mask
+    from da_gp.src.gp_common import get_truth_and_mask
     
     # Reset the global rng in gp_common
-    import src.gp_common
-    src.gp_common.rng = np.random.default_rng(42)
+    import da_gp.src.gp_common
+    da_gp.src.gp_common.rng = np.random.default_rng(42)
     truth1, mask1 = get_truth_and_mask(100)
     
-    src.gp_common.rng = np.random.default_rng(42)
+    da_gp.src.gp_common.rng = np.random.default_rng(42)
     truth2, mask2 = get_truth_and_mask(100)
     
     assert np.allclose(truth1, truth2), "Truth generation not deterministic"
@@ -62,7 +62,7 @@ def test_truth_and_mask_consistency():
 
 def test_observations_generation():
     """Test observation generation consistency."""
-    from src.gp_common import get_truth_and_mask, get_observations
+    from da_gp.src.gp_common import get_truth_and_mask, get_observations
     
     truth, mask = get_truth_and_mask(50)
     obs1 = get_observations(truth, mask, noise_std=0.1)

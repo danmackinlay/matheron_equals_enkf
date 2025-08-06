@@ -14,7 +14,7 @@ DEFAULT_BACKENDS = ["sklearn", "dapper"]
 def run_once(backend: str, n_obs: int, grid_size: int = None) -> float:
     """Run single benchmark and return elapsed time."""
     cmd = [
-        sys.executable, "-m", "src.cli", 
+        sys.executable, "-m", "da_gp.src.cli", 
         "--backend", backend, 
         "--n_obs", str(n_obs)
     ]
@@ -79,8 +79,8 @@ def main():
     
     parser.add_argument(
         "--csv", 
-        default="bench.csv",
-        help="Output CSV file (default: bench.csv)"
+        default="data/bench.csv",
+        help="Output CSV file (default: data/bench.csv)"
     )
     parser.add_argument(
         "--backends",

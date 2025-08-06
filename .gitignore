@@ -248,3 +248,26 @@ main.pdf
 
 *.xml
 _plan*.md
+__marimo__
+__pycache__
+
+# Python
+*.pyc
+.venv/
+*.egg-info/
+
+# Generated artifacts
+data/
+# figures/
+
+# Local benchmarks
+bench*.csv
+demo*.csv
+test*.csv
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
