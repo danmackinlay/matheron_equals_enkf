@@ -411,11 +411,14 @@ Inverse-problem analyses prove contraction and bias properties of finite-ensembl
 Treating EnKF analysis as an empirical Matheron  brings mature geophysical tool-kits—localisation, adaptive inflation, square-root variants—into scalable machine-learning while exporting automatic differentiation and sparse GP tricks back to data assimilation.
 
 % ----------------------------------------------------------------
-\section{Numerical Illustration:  One–D Kriging by Ensemble Kalman filer}
+\section{Numerical Illustration:  1D Kriging by Ensemble Kalman filer}
 \label{sec:numerical-demo}
 % ----------------------------------------------------------------
 
-We re-visit the classic kriging toy problem but now compare two solvers side-by-side:
+We re-visit the classic kriging toy problem but now compare two solvers side-by-side.
+Since our focus here is to demonstrate simplicity of implementation, we use the off-the shelf solver DAPPER~\cite{Raanes2024DAPPER} which allows us to demonstrate the parallels.
+We note however that DAPPER is not optimised for high efficiency posterior sampling and we do not expect it to achieve maximally efficient scaling with problem size; in particular its scaling with state dimension seems to be sub-optimal.
+Code is avaialble in supplemental
 
 \begin{quote}
 \textbf{Task.}  Recover a latent field
