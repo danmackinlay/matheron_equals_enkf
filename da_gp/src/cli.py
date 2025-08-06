@@ -121,10 +121,8 @@ def main() -> None:
     except ImportError as e:
         if rank == 0:
             print(f"Error: {e}", file=sys.stderr)
-            if args.backend == 'dapper':
-                print("Install DAPPER with: uv pip install 'dapper>=1.0'", file=sys.stderr)
-            elif args.backend == 'pdaf':
-                print("Install pyPDAF with: uv pip install pyPDAF mpi4py", file=sys.stderr)
+            if args.backend == 'pdaf':
+                print("Install the pdaf extra with: uv pip install -e '.[pdaf]'", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
         if rank == 0:

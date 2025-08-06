@@ -3,12 +3,8 @@
 import numpy as np
 from .gp_common import GRID_SIZE, draw_prior, make_obs_mask, generate_truth, make_observations
 
-try:
-    from dapper import da_methods, mods
-    from dapper.tools.randvars import RV
-    DAPPER_AVAILABLE = True
-except ImportError:
-    DAPPER_AVAILABLE = False
+from dapper import da_methods, mods
+from dapper.tools.randvars import RV
 
 
 def init_state(n_ens: int) -> np.ndarray:
@@ -18,9 +14,6 @@ def init_state(n_ens: int) -> np.ndarray:
 
 def run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None) -> dict:
     """Run DAPPER EnKF assimilation with an optimized, efficient setup."""
-    if not DAPPER_AVAILABLE:
-        raise ImportError("DAPPER not available. Install with: uv pip install 'dapper>=1.0'")
-
     if truth is None or mask is None or obs is None:
         mask = make_obs_mask(n_obs)
         truth = generate_truth()

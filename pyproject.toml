@@ -20,13 +20,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dapper = ["dapper>=1.7,<2"]
 pdaf = ["mpi4py"]  # pyPDAF not available in PyPI
 jax = ["jax", "jaxlib"]
 dev = ["pytest", "ruff", "mypy"]
 
 [project.scripts]
 da-gp = "da_gp.src.cli:main"
+da-gp-bench = "da_gp.scripts.bench:main"
+da-gp-plot-perf = "da_gp.scripts.plot_perf_combined:main"  
+da-gp-plot-posterior = "da_gp.scripts.plot_posterior:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["da_gp"]

@@ -5,13 +5,6 @@ import pytest
 from da_gp.src.gp_common import GRID_SIZE, draw_prior, make_obs_mask, set_grid_size
 
 
-def _dapper_available() -> bool:
-    """Check if DAPPER is available."""
-    try:
-        import dapper
-        return True
-    except ImportError:
-        return False
 
 
 def _pdaf_available() -> bool:
@@ -87,10 +80,6 @@ def test_sklearn_backend_shapes():
     assert isinstance(result['rmse'], (float, np.floating))
 
 
-@pytest.mark.skipif(
-    not _dapper_available(),
-    reason="DAPPER not available"
-)
 def test_dapper_backend_shapes():
     """Test DAPPER backend output shapes."""
     from da_gp.src.gp_dapper import run, init_state

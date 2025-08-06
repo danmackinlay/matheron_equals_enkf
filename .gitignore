@@ -252,9 +252,11 @@ __marimo__
 __pycache__
 
 # Python
+__pycache__/
 *.pyc
 .venv/
 *.egg-info/
+# Note: uv.lock should be committed (not ignored)
 
 # Generated artifacts
 data/

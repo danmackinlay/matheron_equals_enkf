@@ -6,13 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pathlib import Path
 
-try:
-    # tueplots is the key for publication-quality figures
-    from tueplots import bundles, figsizes
-    TUEPLOTS_AVAILABLE = True
-except ImportError:
-    TUEPLOTS_AVAILABLE = False
-    print("Warning: tueplots not available, using default matplotlib settings")
+# tueplots is the key for publication-quality figures
+from tueplots import bundles, figsizes
 
 
 def plot_ax(ax, df, x_col, fixed_col, backends, colors): # Now accepts colors dict
@@ -86,20 +81,8 @@ def main():
         return 1
 
     # Use tueplots to set figure size and font style for JMLR
-    if TUEPLOTS_AVAILABLE:
-        # This specifies a figure with 1 row and 2 columns of subplots.
-        plt.rcParams.update(bundles.jmlr2001(nrows=1, ncols=2))
-    else:
-        # Fallback settings for publication quality
-        plt.rcParams.update({
-            'figure.figsize': (10, 4),
-            'font.size': 10,
-            'axes.labelsize': 10,
-            'axes.titlesize': 11,
-            'xtick.labelsize': 9,
-            'ytick.labelsize': 9,
-            'legend.fontsize': 9
-        })
+    # This specifies a figure with 1 row and 2 columns of subplots.
+    plt.rcParams.update(bundles.jmlr2001(nrows=1, ncols=2))
 
     # Create a figure with two subplots
     fig, axs = plt.subplots(1, 2)

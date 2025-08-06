@@ -24,7 +24,7 @@ jobs:
     - name: Create environment and install dependencies
       run: |
         uv venv
-        uv pip install -e .[dev,dapper]
+        uv sync
     
     - name: Run linting
       run: uv run ruff check da_gp/src da_gp/tests

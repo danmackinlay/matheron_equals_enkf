@@ -5,12 +5,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
-import sys
-import os
 
-# Add src to path for imports
-# Ensure the path is correct relative to the repository root
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from da_gp.src.gp_common import X_grid, get_truth_and_mask, get_observations
 

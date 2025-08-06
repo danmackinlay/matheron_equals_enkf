@@ -1743,9 +1743,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-dapper = [
-    { name = "dapper" },
-]
 dev = [
     { name = "mypy" },
     { name = "pytest" },
@@ -1767,7 +1764,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "dapper", specifier = ">=1.7,<2" },
-    { name = "dapper", marker = "extra == 'dapper'", specifier = ">=1.7,<2" },
     { name = "jax", marker = "extra == 'jax'" },
     { name = "jaxlib", marker = "extra == 'jax'" },
     { name = "matplotlib" },
@@ -1781,7 +1777,7 @@ requires-dist = [
     { name = "scikit-learn" },
     { name = "tueplots", specifier = ">=0.2.1" },
 ]
-provides-extras = ["dapper", "pdaf", "jax", "dev"]
+provides-extras = ["pdaf", "jax", "dev"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.4.1" }]

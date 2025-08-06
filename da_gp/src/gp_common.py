@@ -43,7 +43,7 @@ def _phi(x: np.ndarray) -> np.ndarray:
 def draw_prior_fft() -> np.ndarray:
     """
     Draw an exact sample from the GP prior using the FFT-based
-    circulant embedding method. This is highly efficient for stationary
+    circulant embedding method. This is highly efficient for stationary 
     kernels on a regular grid.
 
     This method avoids the O(N^3) cost of Cholesky decomposition by
