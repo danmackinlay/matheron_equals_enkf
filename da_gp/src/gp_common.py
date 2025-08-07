@@ -19,6 +19,7 @@
 import logging
 from dataclasses import dataclass, field
 from typing import Any
+
 import numpy as np
 from sklearn.gaussian_process.kernels import RBF
 
@@ -29,15 +30,16 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True, slots=True)
 class Problem:
     """Immutable problem specification for GP/DA experiments.
-    
+
     This replaces global state variables and ensures all functions receive
     explicit configuration rather than relying on hidden module-level state.
     """
+
     grid_size: int
-    n_obs: int 
+    n_obs: int
     noise_std: float = 0.1
     rng: np.random.Generator = field(default_factory=lambda: np.random.default_rng())
-    
+
     def __post_init__(self):
         """Validate problem parameters."""
         if self.grid_size <= 0:
@@ -49,7 +51,8 @@ class Problem:
 
 
 # Constants
-RFF_DIM = 1024             # number of random features (tunable)
+RFF_DIM = 1024  # number of random features (tunable)
+
 
 # Pure helper functions to replace global state
 def make_grid(grid_size: int) -> np.ndarray:
@@ -62,34 +65,34 @@ def make_kernel() -> Any:
     return 1.0 * RBF(length_scale=30.0)
 
 
-def make_rff_params(grid_size: int, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+def make_rff_params(
+    grid_size: int, rng: np.random.Generator
+) -> tuple[np.ndarray, np.ndarray]:
     """Create Random Fourier Feature parameters for given grid size."""
     kernel = make_kernel()
     # Extract length scale from the RBF kernel
-    length_scale = kernel.k2.length_scale if hasattr(kernel, 'k2') else 10.0
-    
-    W = rng.normal(0, 1/length_scale, size=(RFF_DIM, 1))
-    b = rng.uniform(0, 2*np.pi, size=RFF_DIM)
+    length_scale = kernel.k2.length_scale if hasattr(kernel, "k2") else 10.0
+
+    W = rng.normal(0, 1 / length_scale, size=(RFF_DIM, 1))
+    b = rng.uniform(0, 2 * np.pi, size=RFF_DIM)
     return W, b
-
-
 
 
 def draw_prior_fft(grid_size: int, rng: np.random.Generator) -> np.ndarray:
     """
     Draw an exact sample from the GP prior using FFT-based circulant embedding.
     Pure functional version that takes explicit grid_size parameter.
-    
+
     Args:
         grid_size: Size of the spatial grid
         rng: Random number generator
-    
+
     Returns:
         Sample from the GP prior of shape (grid_size,)
     """
     X_grid = make_grid(grid_size)
     kernel = make_kernel()
-    
+
     # 1. Compute the first row of the covariance matrix
     cov_row = kernel(X_grid[:1], X_grid).flatten()
 
@@ -97,7 +100,7 @@ def draw_prior_fft(grid_size: int, rng: np.random.Generator) -> np.ndarray:
     N_circ = 2 * grid_size
     circ_row = np.zeros(N_circ)
     circ_row[:grid_size] = cov_row
-    circ_row[N_circ - grid_size + 1:] = cov_row[1:][::-1]
+    circ_row[N_circ - grid_size + 1 :] = cov_row[1:][::-1]
 
     # 3. Eigenvalues are FFT of first row
     lambda_ = np.fft.fft(circ_row).real
@@ -105,11 +108,13 @@ def draw_prior_fft(grid_size: int, rng: np.random.Generator) -> np.ndarray:
 
     # 4. Generate complex Gaussian white noise in Fourier domain
     noise_freq = rng.normal(size=N_circ) + 1j * rng.normal(size=N_circ)
-    noise_freq[0] = rng.normal() # DC component is real
+    noise_freq[0] = rng.normal()  # DC component is real
     if N_circ % 2 == 0:
-        noise_freq[N_circ // 2] = rng.normal() # Nyquist component is real
+        noise_freq[N_circ // 2] = rng.normal()  # Nyquist component is real
     else:
-        noise_freq[(N_circ+1)//2:] = np.conj(noise_freq[1:(N_circ+1)//2][::-1])
+        noise_freq[(N_circ + 1) // 2 :] = np.conj(
+            noise_freq[1 : (N_circ + 1) // 2][::-1]
+        )
 
     # 5. Color the noise and transform back
     sample_freq = noise_freq * np.sqrt(lambda_)
@@ -119,34 +124,32 @@ def draw_prior_fft(grid_size: int, rng: np.random.Generator) -> np.ndarray:
     return sample[:grid_size]
 
 
-
-
 def draw_prior_rff(grid_size: int, rng: np.random.Generator) -> np.ndarray:
     """
     Draw a sample from the GP prior using Random Fourier Features.
     Pure functional version that takes explicit grid_size parameter.
-    
+
     Args:
         grid_size: Size of the spatial grid
         rng: Random number generator
-    
+
     Returns:
         Sample from the GP prior of shape (grid_size,)
     """
     X_grid = make_grid(grid_size)
     W, b = make_rff_params(grid_size, rng)
-    
+
     # RFF mapping function
     def phi(x: np.ndarray) -> np.ndarray:
-        return np.sqrt(2/RFF_DIM) * np.cos(x @ W.T + b)
-    
+        return np.sqrt(2 / RFF_DIM) * np.cos(x @ W.T + b)
+
     z = rng.standard_normal(RFF_DIM)  # a_j coefficients
-    return phi(X_grid) @ z            # O(d m) matrix-vector product
+    return phi(X_grid) @ z  # O(d m) matrix-vector product
 
 
-
-
-def draw_prior(grid_size: int, rng: np.random.Generator, use_rff: bool = False) -> np.ndarray:
+def draw_prior(
+    grid_size: int, rng: np.random.Generator, use_rff: bool = False
+) -> np.ndarray:
     """
     Draw a sample from the GP prior using FFT (default) or RFF.
 
@@ -163,8 +166,6 @@ def draw_prior(grid_size: int, rng: np.random.Generator, use_rff: bool = False) 
     return draw_prior_fft(grid_size, rng)
 
 
-
-
 # Functional data generation helpers
 def make_obs_mask(problem: Problem) -> np.ndarray:
     """Create observation mask by randomly selecting grid points."""
@@ -176,19 +177,23 @@ def generate_truth(problem: Problem) -> np.ndarray:
     return draw_prior(problem.grid_size, problem.rng)
 
 
-def make_observations(truth: np.ndarray, mask: np.ndarray, problem: Problem) -> np.ndarray:
+def make_observations(
+    truth: np.ndarray, mask: np.ndarray, problem: Problem
+) -> np.ndarray:
     """Generate noisy observations from truth at masked locations."""
     obs = truth[mask]
     noise = problem.rng.normal(0, problem.noise_std, size=len(obs))
     return obs + noise
 
 
-def generate_experiment_data(problem: Problem) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def generate_experiment_data(
+    problem: Problem,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Generate complete experiment dataset (truth, mask, observations).
-    
+
     Args:
         problem: Problem specification
-        
+
     Returns:
         truth, mask, observations
     """
@@ -198,21 +203,23 @@ def generate_experiment_data(problem: Problem) -> tuple[np.ndarray, np.ndarray, 
     return truth, mask, obs
 
 
-def make_dataset(grid_size: int = 2000, n_obs: int = 100, noise_std: float = 0.1, seed: int = None) -> tuple[Problem, np.ndarray, np.ndarray, np.ndarray]:
+def make_dataset(
+    grid_size: int = 2000, n_obs: int = 100, noise_std: float = 0.1, seed: int = None
+) -> tuple[Problem, np.ndarray, np.ndarray, np.ndarray]:
     """Convenience factory for creating a complete dataset.
-    
+
     This is a shorthand for creating a Problem and generating experimental data,
     useful for notebooks, interactive sessions, and simple test cases.
-    
+
     Args:
         grid_size: State dimension (default: 2000)
         n_obs: Number of observations (default: 100)
         noise_std: Observation noise standard deviation (default: 0.1)
         seed: Random seed for reproducibility (default: None)
-        
+
     Returns:
         problem, truth, mask, observations
-        
+
     Example:
         >>> problem, truth, mask, obs = make_dataset(grid_size=1000, n_obs=50, seed=42)
         >>> result = run_sklearn(problem, truth=truth, mask=mask, obs=obs)
@@ -221,5 +228,3 @@ def make_dataset(grid_size: int = 2000, n_obs: int = 100, noise_std: float = 0.1
     problem = Problem(grid_size=grid_size, n_obs=n_obs, noise_std=noise_std, rng=rng)
     truth, mask, obs = generate_experiment_data(problem)
     return problem, truth, mask, obs
-
-

@@ -18,72 +18,84 @@
 """Generate posterior comparison plots with truth, observations, and samples."""
 
 import argparse
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
 
 # Import unified styling
 from da_gp.figstyle import setup_figure_style
 from da_gp.src.gp_common import Problem, generate_experiment_data
 
-def run_backend(backend: str, problem: Problem, truth: np.ndarray, mask: np.ndarray, obs: np.ndarray, n_draws: int = 200):
+
+def run_backend(
+    backend: str,
+    problem: Problem,
+    truth: np.ndarray,
+    mask: np.ndarray,
+    obs: np.ndarray,
+    n_draws: int = 200,
+):
     """Run a specific backend with given data."""
     if backend == "sklearn":
         from da_gp.src.gp_sklearn import run
+
         return run(problem, truth=truth, mask=mask, obs=obs, n_ens=n_draws)
-    elif backend == "dapper_enkf":
+    if backend == "dapper_enkf":
         from da_gp.src.gp_dapper import run_enkf
-        return run_enkf(problem, n_ens=n_draws, truth=truth, mask=mask, obs=obs, seed=42)
-    elif backend == "dapper_letkf":
+
+        return run_enkf(
+            problem, n_ens=n_draws, truth=truth, mask=mask, obs=obs, seed=42
+        )
+    if backend == "dapper_letkf":
         from da_gp.src.gp_dapper import run_letkf
-        return run_letkf(problem, n_ens=n_draws, truth=truth, mask=mask, obs=obs, seed=42)
-    else:
-        raise ValueError(f"Unknown backend: {backend}")
+
+        return run_letkf(
+            problem, n_ens=n_draws, truth=truth, mask=mask, obs=obs, seed=42
+        )
+    raise ValueError(f"Unknown backend: {backend}")
 
 
 def main():
     """Generate posterior comparison plot."""
-    parser = argparse.ArgumentParser(description="Generate posterior plots with dual-backend comparison")
+    parser = argparse.ArgumentParser(
+        description="Generate posterior plots with dual-backend comparison"
+    )
     parser.add_argument(
         "--backends",
         nargs="+",
         default=["sklearn", "dapper_enkf", "dapper_letkf"],
         choices=["sklearn", "dapper_enkf", "dapper_letkf"],
-        help="Backends to compare"
+        help="Backends to compare",
     )
     parser.add_argument(
-        "--n_obs",
-        type=int,
-        default=50,
-        help="Number of observations (default: 50)"
+        "--n_obs", type=int, default=50, help="Number of observations (default: 50)"
     )
     parser.add_argument(
         "--n_draws",
         type=int,
         default=50,
-        help="Number of posterior draws per backend (default: 50)"
+        help="Number of posterior draws per backend (default: 50)",
     )
     parser.add_argument(
-        "--out",
-        default="figures/posterior_samples.pdf",
-        help="Output figure path"
+        "--out", default="figures/posterior_samples.pdf", help="Output figure path"
     )
     parser.add_argument(
         "--show_truth",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Show the ground truth as a thick dotted line"
+        help="Show the ground truth as a thick dotted line",
     )
     parser.add_argument(
         "--colorblind-friendly",
         action="store_true",
-        help="Use color-blind friendly palette"
+        help="Use color-blind friendly palette",
     )
     parser.add_argument(
         "--grid_size",
         type=int,
         default=2000,
-        help="Grid size (state dimension, default: 2000)"
+        help="Grid size (state dimension, default: 2000)",
     )
 
     args = parser.parse_args()
@@ -93,28 +105,27 @@ def main():
 
     # --- FIX 1: Use an accessible color palette ---
     # Use 'viridis', a perceptually uniform and color-blind-friendly palette
-    color_map = plt.colormaps['viridis']
+    color_map = plt.colormaps["viridis"]
     colors = {
         backend: color_map(i / (len(args.backends)))
         for i, backend in enumerate(args.backends)
     }
     # Add black for specific elements if needed
-    colors['truth'] = 'black'
-    colors['obs'] = 'black'
-
+    colors["truth"] = "black"
+    colors["obs"] = "black"
 
     # --- FIX 3: Calculate dynamic alpha for posterior samples ---
     # Alpha scales down as the number of draws increases to prevent solid bands
-    dynamic_alpha = np.clip(
-        1.0 / float(args.n_draws)**0.75,
-        0.01, 1.0)
+    dynamic_alpha = np.clip(1.0 / float(args.n_draws) ** 0.75, 0.01, 1.0)
 
     # Ensure output directory exists
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
 
     # Generate consistent data for all backends using Problem-based approach
     print(f"Generating data with {args.n_obs} observations...")
-    problem = Problem(grid_size=args.grid_size, n_obs=args.n_obs, noise_std=0.1, rng=rng)
+    problem = Problem(
+        grid_size=args.grid_size, n_obs=args.n_obs, noise_std=0.1, rng=rng
+    )
     truth, mask, obs = generate_experiment_data(problem)
 
     # Set up plotting
@@ -129,7 +140,7 @@ def main():
             print(f"Running {backend} backend...")
             result = run_backend(backend, problem, truth, mask, obs, args.n_draws)
             samples = result["posterior_samples"]
-            color = colors.get(backend, 'gray')
+            color = colors.get(backend, "gray")
 
             # --- FIX 2: Set zorder for posterior samples ---
             # Lower zorder means they are drawn first (in the background).
@@ -148,31 +159,43 @@ def main():
     if args.show_truth:
         # --- FIX 2: Set zorder for truth line ---
         # Draw it behind observations but on top of the posterior cloud.
-        plt.plot(x, truth, color=colors['truth'], lw=1.5, ls='--', alpha=0.8, label='True Field', zorder=20)
+        plt.plot(
+            x,
+            truth,
+            color=colors["truth"],
+            lw=1.5,
+            ls="--",
+            alpha=0.8,
+            label="True Field",
+            zorder=20,
+        )
 
     # Plot observations
     plt.scatter(
-        x[mask], obs,
-        marker='x',
-        color=colors['obs'],
+        x[mask],
+        obs,
+        marker="x",
+        color=colors["obs"],
         s=40,
         linewidths=1.5,
         alpha=1.0,
-        label='Observations',
+        label="Observations",
         # --- FIX 2: Set high zorder to ensure observations are on top ---
-        zorder=30
+        zorder=30,
     )
 
     # Formatting
     plt.xlabel("State Dimension (Grid Index)")
     plt.ylabel("Value")
-    plt.title(f"Posterior Comparison (Observations = {args.n_obs}, Draws = {args.n_draws})")
-    plt.legend(loc='upper right')
+    plt.title(
+        f"Posterior Comparison (Observations = {args.n_obs}, Draws = {args.n_draws})"
+    )
+    plt.legend(loc="upper right")
     plt.grid(True, which="both", ls="--", alpha=0.2)
     plt.tight_layout()
 
     # Save figure
-    plt.savefig(args.out, dpi=300, bbox_inches='tight')
+    plt.savefig(args.out, dpi=300, bbox_inches="tight")
     print(f"Saved figure to {args.out}")
 
 

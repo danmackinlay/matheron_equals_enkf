@@ -21,48 +21,53 @@ import matplotlib.pyplot as plt
 # Publication-ready plot settings - JMLR 2001 style
 try:
     from tueplots import bundles
+
     plt.rcParams.update(bundles.jmlr2001(nrows=1, ncols=2))
 except ImportError:
     print("Warning: tueplots not available, using fallback matplotlib settings")
-    plt.rcParams.update({
-        'figure.figsize': (6.0, 3.0),  # JMLR-style figure size
-        'font.size': 10,
-        'axes.labelsize': 10,
-        'axes.titlesize': 10,
-        'legend.fontsize': 9,
-        'xtick.labelsize': 9,
-        'ytick.labelsize': 9,
-        'text.usetex': False,  # Avoid LaTeX dependency issues
-        'font.family': 'serif',
-        'axes.linewidth': 0.8,
-        'lines.linewidth': 1.2,
-        'lines.markersize': 4,
-        'grid.alpha': 0.3,
-    })
+    plt.rcParams.update(
+        {
+            "figure.figsize": (6.0, 3.0),  # JMLR-style figure size
+            "font.size": 10,
+            "axes.labelsize": 10,
+            "axes.titlesize": 10,
+            "legend.fontsize": 9,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "text.usetex": False,  # Avoid LaTeX dependency issues
+            "font.family": "serif",
+            "axes.linewidth": 0.8,
+            "lines.linewidth": 1.2,
+            "lines.markersize": 4,
+            "grid.alpha": 0.3,
+        }
+    )
 
 # Backend styling - consistent colors and markers across all plots
 BACKEND_STYLES = {
-    'sklearn': {'marker': 'o', 'color': 'C0', 'label': 'Sklearn GP', 'linestyle': '-'},
-    'dapper_enkf': {'marker': 's', 'color': 'C1', 'label': 'EnKF', 'linestyle': '-'},
-    'dapper_letkf': {'marker': '^', 'color': 'C2', 'label': 'LETKF', 'linestyle': '-'},
+    "sklearn": {"marker": "o", "color": "C0", "label": "Sklearn GP", "linestyle": "-"},
+    "dapper_enkf": {"marker": "s", "color": "C1", "label": "EnKF", "linestyle": "-"},
+    "dapper_letkf": {"marker": "^", "color": "C2", "label": "LETKF", "linestyle": "-"},
 }
 
 # Color-blind friendly palette (optional)
-COLORBLIND_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
+COLORBLIND_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+
 
 def apply_colorblind_palette():
     """Apply color-blind friendly palette to backend styles."""
     for i, (backend, style) in enumerate(BACKEND_STYLES.items()):
         if i < len(COLORBLIND_COLORS):
-            style['color'] = COLORBLIND_COLORS[i]
+            style["color"] = COLORBLIND_COLORS[i]
+
 
 def setup_figure_style(colorblind_friendly=False):
     """Setup figure style with optional color-blind friendly palette.
-    
+
     Args:
         colorblind_friendly: If True, use color-blind friendly colors
     """
     if colorblind_friendly:
         apply_colorblind_palette()
-    
+
     return BACKEND_STYLES

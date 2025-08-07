@@ -149,7 +149,7 @@ We establish that the ensemble update step in the EnKF is equivalent to an empir
 
 \subsection{Historical Context and Related Work}\label{sec:history}
 
-Although the affine residual update first appeared in geostatistics under the banner of \emph{conditioning by kriging}~\cite{Chiles2018Kriging}, it was rediscovered many times:
+Although the affine residual update first appeared in geostatistics under the banner of \emph{conditioning by kriging}~\citep{Chiles2018Fifty}, it was rediscovered many times:
 \begin{itemize}
     \item \textbf{Optimal interpolation (OI).}  Early numerical-weather-prediction (NWP) systems wrote the analysis as
     $x_a = x_b + K(y - Hx_b)$ with a climatological Kalman gain; this is exactly the Matheron rule with fixed covariances~\citep{Hunt2007Efficient}.
@@ -157,7 +157,7 @@ Although the affine residual update first appeared in geostatistics under the ba
     \item \textbf{Fast conditional simulation.}  \citet{Doucet2010Note} noticed that one can obtain conditional Gaussian draws \emph{without} a Cholesky factorisation by adding a linear residual—again the same formula.
     \item \textbf{Pathwise GP sampling.}  The machine-learning community re-invented the idea as \emph{path-wise conditioning} for scalable Gaussian-process (GP) posterior draws~\citep{Wilson2020Efficiently,Wilson2021Pathwise,Borovitskiy2023Matern}.
     \item \textbf{Reservoir inversion and EnRML.}  Iterative ensemble smoothers such as EnRML exploit the very same affine map in the context of PDE-constrained Bayesian inversion~\citep{Chen2012Ensemble}.
-    \item \textbf{Theory of ensemble inversion.}  Convergence proofs for ensemble inversion~\citep{Schillings2016EnKFInverse} and extensions via transport maps~\citep{Spantini2022Coupling} all start from the linear Matheron/EnKF identity.
+    \item \textbf{Theory of ensemble inversion.}  Convergence proofs for ensemble inversion~\citep{Schillings2017Analysis} and extensions via transport maps~\citep{Spantini2022Coupling} all start from the linear Matheron/EnKF identity.
 \end{itemize}
 
 This equivalence forms the algebraic core of at least six research communities, turning a patchwork of field-specific heuristics into transferable technology.
@@ -330,7 +330,7 @@ Abusing notation, we associate a Gaussian distribution with the empirical measur
 \begin{align}
 \ELaw[\mm{X}] \approx \Normal(\widehat{\Ex}[\vrv{x}], \widehat{\var}(\vrv{x})) = \Normal(\mmmean{X}, \mmdev{X} \mmdev{X}^\top + \xi^2\mm{I}_{D_{\vrv{x}}}).
 \end{align}
-For posterior inference about $\vrv{x}$ given $\vrv{y}=\vv{y}^*$, we seek an ensemble $\mm{X}'$ such that~\footnote{see~\cite{LeGland2009Large,Mandel2011Convergence,Kelly2014Wellposedness,Kwiatkowski2015Convergence,DelMoral2017Stability} for finite-ensemble convergence}
+For posterior inference about $\vrv{x}$ given $\vrv{y}=\vv{y}^*$, we seek an ensemble $\mm{X}'$ such that~\footnote{see~\cite{LeGland2011Large,Mandel2011Convergence,Kelly2014Wellposedness,Kwiatkowski2015Convergence,DelMoral2017Stability} for finite-ensemble convergence}
 \begin{align}
     \Ex_{\vrv{x}\sim \ELaw[\mm{X}']}[ \vrv{x}] &\approx \Ex_{\vrv{x}\sim (\Law[\vrv{x} \gvn \vrv{y}=\vv{y}^*])} [\vrv{x}]\\
     \var_{\vrv{x}\sim \ELaw[\mm{X}']} (\vrv{x}) &\approx \var_{\vrv{x}\sim (\Law[\vrv{x} \gvn \vrv{y}=\vv{y}^*])} (\vrv{x})
