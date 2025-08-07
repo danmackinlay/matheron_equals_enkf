@@ -16,6 +16,7 @@
 
 # FILE: da-gp/src/gp_dapper.py
 
+import time
 import numpy as np
 from .gp_common import GRID_SIZE
 
@@ -73,10 +74,13 @@ def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np
     xx = np.vstack([truth, truth])
     yy = obs.reshape(1, -1)
 
-    # Assimilate. This modifies `da_method` in-place.
+    # Time the assimilation (fit) step
+    t0 = time.perf_counter()
     da_method.assimilate(HMM, xx, yy)
+    fit_time = time.perf_counter() - t0
 
-    # Extract results - get mean from stats, ensemble from DA object or reconstruct
+    # Time the prediction/extraction (predict) step
+    t0 = time.perf_counter()
     posterior_mean = da_method.stats.mu.a[0]
     
     # Try to get ensemble from DA object, fallback to reconstruction
@@ -90,6 +94,7 @@ def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np
             size=n_ens
         )
     truth_at_analysis_time = xx[HMM.tseq.kko[0]]
+    predict_time = time.perf_counter() - t0
 
     return {
         'posterior_mean': posterior_mean,
@@ -98,6 +103,9 @@ def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np
         'obs': obs,
         'mask': mask,
         'rmse': np.sqrt(np.mean((posterior_mean - truth_at_analysis_time)**2)),
+        'fit_time': fit_time,
+        'predict_time': predict_time,
+        'total_time': fit_time + predict_time,
         'n_ens': n_ens,
         'n_obs': n_obs,
     }

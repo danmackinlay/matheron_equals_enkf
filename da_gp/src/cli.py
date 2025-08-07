@@ -159,7 +159,13 @@ def print_results(args: argparse.Namespace, result: Dict[str, Any], elapsed_time
     print(f"Grid size: {GRID_SIZE:,}")
     print(f"Observations: {args.n_obs:,}")
     print(f"Ensemble size: {args.n_ens}")
-    print(f"Elapsed time: {elapsed_time:.3f}s")
+    print(f"Total elapsed time: {elapsed_time:.3f}s")
+    
+    # Print internal timings if available
+    if 'fit_time' in result and 'predict_time' in result:
+        print(f"  Fit time: {result['fit_time']:.3f}s")
+        print(f"  Predict time: {result['predict_time']:.3f}s")
+        print(f"  Internal total: {result.get('total_time', result['fit_time'] + result['predict_time']):.3f}s")
     
     if 'rmse' in result:
         print(f"RMSE: {result['rmse']:.6f}")
@@ -170,8 +176,11 @@ def print_results(args: argparse.Namespace, result: Dict[str, Any], elapsed_time
             if key not in ['posterior_mean', 'posterior_ensemble', 'posterior_std']:
                 print(f"  {key}: {value}")
     
-    # CSV output for benchmarking
-    print(f"\nCSV: {args.backend},{args.n_obs},{GRID_SIZE},{elapsed_time:.6f},{result.get('rmse', 0.0):.6f}")
+    # Enhanced CSV output for benchmarking - now includes separate fit/predict times
+    fit_time = result.get('fit_time', elapsed_time)
+    predict_time = result.get('predict_time', 0.0) 
+    rmse = result.get('rmse', 0.0)
+    print(f"\nCSV: {args.backend},{args.n_obs},{GRID_SIZE},{fit_time:.6f},{predict_time:.6f},{elapsed_time:.6f},{rmse:.6f}")
 
 
 if __name__ == '__main__':

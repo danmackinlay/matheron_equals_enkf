@@ -48,54 +48,85 @@ uv run pytest da_gp/tests/
 This provides a minimal, end-to-end workflow to generate a result.
 
 ```bash
-# 1. Generate a small dataset for observation scaling
+# 1. Generate timing data with internal benchmarking (NEW: separate fit/predict times)
 uv run python da_gp/scripts/bench.py \
     --n_obs_grid 100 500 --grid_size_fixed 1000 \
-    --backends sklearn dapper_enkf dapper_letkf --csv data/quick_obs.csv
+    --backends sklearn dapper_enkf dapper_letkf --csv data/timing_quick.csv
 
-# 2. Generate a small dataset for dimension scaling
-uv run python da_gp/scripts/bench.py \
-    --dim_grid 500 1000 --n_obs_fixed 500 \
-    --backends sklearn dapper_enkf dapper_letkf --csv data/quick_dim.csv
+# 2. Create dual-curve timing plots showing fit vs predict times (NEW)
+uv run python da_gp/scripts/plot_timing.py data/timing_quick.csv --output-dir figures
 
-# 3. Create the combined performance plot from the quick data
-uv run python da_gp/scripts/plot_performance.py data/quick_obs.csv data/quick_dim.csv
-
-# 4. Generate a posterior plot showing all three backends
+# 3. Generate a posterior plot showing all three backends
 uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 
-# 5. Build the paper
+# 4. Build the paper
 latexmk -pdf main.tex
 ```
 
-## Full Benchmarking Workflow
+### Legacy Performance Benchmarking (Deprecated)
 
-This is the complete workflow to reproduce the figures for the paper.
+The old subprocess-based benchmarking is still available but deprecated:
 
 ```bash
-# Step 1: Generate observation scaling data
+# Legacy: Combined performance plot (slower, includes Python startup overhead)
+uv run python da_gp/scripts/plot_performance.py data/legacy_obs.csv data/legacy_dim.csv
+```
+
+## Full Timing Benchmarking Workflow
+
+This is the complete workflow to reproduce the timing figures for the paper using the new internal timing system.
+
+```bash
+# Step 1: Generate comprehensive timing data (observation scaling)
 uv run python da_gp/scripts/bench.py \
     --n_obs_grid 100 500 1000 2000 5000 \
     --grid_size_fixed 2000 \
     --backends sklearn dapper_enkf dapper_letkf \
-    --csv data/bench_obs.csv
+    --csv data/timing_obs.csv \
+    --repeats 5
 
-# Step 2: Generate dimension scaling data
+# Step 2: Generate dimension scaling timing data
 uv run python da_gp/scripts/bench.py \
-    --dim_grid 250 500 1000 2000 4000 8000 \
-    --n_obs_fixed 2000 \
+    --dim_grid 250 500 1000 2000 4000 \
+    --n_obs_fixed 1000 \
     --backends sklearn dapper_enkf dapper_letkf \
-    --csv data/bench_dim.csv
+    --csv data/timing_dim.csv \
+    --repeats 5
 
-# Step 3: Create the final, combined scaling plot
-uv run python da_gp/scripts/plot_performance.py data/bench_obs.csv data/bench_dim.csv
+# Step 3: Create dual-curve timing plots (fit vs predict times)
+uv run python da_gp/scripts/plot_timing.py data/timing_obs.csv --output-dir figures
+uv run python da_gp/scripts/plot_timing.py data/timing_dim.csv --output-dir figures
 
-# Step 4: Generate the final posterior comparison plot
+# Step 4: Generate the posterior comparison plot
 uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 
 # Output files used by main.tex:
-# - figures/perf_scaling.pdf
-# - figures/posterior_samples.pdf
+# - figures/timing_vs_observations.pdf  (NEW: fit + predict times vs # observations)  
+# - figures/timing_vs_dimensions.pdf    (NEW: fit + predict times vs state dimension)
+# - figures/posterior_samples.pdf       (posterior comparison)
+```
+
+## Key Improvements in Timing System
+
+The new timing system provides several advantages over the legacy approach:
+
+1. **Separate fit and predict times**: Shows that GP training is O(m³) while EnKF prediction is effectively O(1) for fixed ensemble size
+2. **Internal timing**: Uses `time.perf_counter()` to eliminate Python startup and I/O overhead  
+3. **Statistical robustness**: Includes warm-up runs and reports median of 5 timing repeats
+4. **Shared datasets**: All backends use identical synthetic data for fair comparison
+5. **Dual-curve plots**: Log-log plots clearly show scaling differences between training and prediction
+
+## Legacy Benchmarking (Subprocess-based)
+
+The original subprocess-based benchmarking is still available but not recommended:
+
+```bash
+# Legacy workflow (includes Python startup overhead)
+uv run python da_gp/scripts/bench.py \
+    --n_obs_grid 100 500 1000 \
+    --backends sklearn --csv data/legacy.csv
+
+uv run python da_gp/scripts/plot_performance.py data/legacy.csv
 ```
 
 ## Testing
@@ -112,30 +143,50 @@ uv run pytest da_gp/tests/test_shapes.py -v
 
 ### Main CLI (`da-gp`)
 
-Run a single experiment. Available backends are `sklearn`, `dapper_enkf`, and `dapper_letkf`.
+Run a single experiment with internal timing. Available backends are `sklearn`, `dapper_enkf`, and `dapper_letkf`.
 
 ```bash
-uv run da-gp --backend dapper_letkf --n_obs 1000 --grid_size 500
+# Single experiment with detailed timing output
+uv run da-gp --backend dapper_letkf --n_obs 1000 --grid_size 500 --verbose
 ```
 
-### Benchmark Script
+The CLI now reports separate fit and predict times along with CSV output including both timings.
 
-Generate performance data by sweeping over parameters.
+### Timing Benchmark Script (NEW)
+
+Generate timing data with internal benchmarking and statistical robustness.
 
 ```bash
-uv run python da_gp/scripts/bench.py --n_obs_grid 100 500 --backends sklearn --csv data/results.csv
+# Observation scaling with 5 timing repeats per configuration
+uv run python da_gp/scripts/bench.py \
+    --n_obs_grid 100 500 1000 --backends sklearn dapper_enkf dapper_letkf \
+    --csv data/timing_results.csv --repeats 5
+
+# Dimension scaling
+uv run python da_gp/scripts/bench.py \
+    --dim_grid 500 1000 2000 --n_obs_fixed 500 \
+    --backends sklearn dapper_enkf --csv data/timing_dim.csv
 ```
+
+Key features:
+- **In-process timing**: No subprocess overhead using `time.perf_counter()`
+- **Warm-up runs**: First iteration discarded to eliminate cold-start effects  
+- **Statistical robustness**: Median of multiple timing repeats (default: 5)
+- **Shared datasets**: Identical synthetic data across all backends for fair comparison
 
 ### Plot Generation Scripts
 
-Generate plots from benchmark data.
+Generate publication-quality plots from benchmark data.
 
 ```bash
-# Create the combined, publication-quality performance plot
-uv run python da_gp/scripts/plot_performance.py data/bench_obs.csv data/bench_dim.csv
+# NEW: Dual-curve timing plots (fit vs predict times)
+uv run python da_gp/scripts/plot_timing.py data/timing_results.csv --output-dir figures
 
 # Create the posterior samples plot
 uv run python da_gp/scripts/plot_posterior.py --n_obs 50
+
+# Legacy: Combined performance plot (subprocess-based, deprecated)
+uv run python da_gp/scripts/plot_performance.py data/legacy_obs.csv data/legacy_dim.csv
 ```
 
 ## Licensing
