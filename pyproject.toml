@@ -27,7 +27,6 @@ dev = ["pytest", "ruff", "mypy"]
 [project.scripts]
 da-gp = "da_gp.src.cli:main"
 da-gp-bench = "da_gp.scripts.bench:main"
-da-gp-plot-perf = "da_gp.scripts.plot_perf_combined:main"  
 da-gp-plot-posterior = "da_gp.scripts.plot_posterior:main"
 da-gp-plot-timing = "da_gp.scripts.plot_timing:main"
 

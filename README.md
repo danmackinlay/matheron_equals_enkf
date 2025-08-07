@@ -12,8 +12,8 @@ The project is organized to separate the Python package, scripts, and publicatio
 ├── da_gp/                     # Core Python package
 │   ├── src/                   # Source code for backends and CLI
 │   ├── scripts/               # Standalone scripts for analysis
-│   │   ├── bench.py           # Performance benchmarking
-│   │   ├── plot_performance.py # Combined scaling plot generation
+│   │   ├── bench.py           # Performance benchmarking with internal timing
+│   │   ├── plot_timing.py     # Dual-curve timing plots (fit vs predict)
 │   │   └── plot_posterior.py  # Posterior comparison plots
 │   └── tests/                 # Test suite
 ├── data/                      # Generated CSV files (gitignored)
@@ -63,14 +63,6 @@ uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 latexmk -pdf main.tex
 ```
 
-### Legacy Performance Benchmarking (Deprecated)
-
-The old subprocess-based benchmarking is still available but deprecated:
-
-```bash
-# Legacy: Combined performance plot (slower, includes Python startup overhead)
-uv run python da_gp/scripts/plot_performance.py data/legacy_obs.csv data/legacy_dim.csv
-```
 
 ## Full Timing Benchmarking Workflow
 
@@ -108,7 +100,7 @@ uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 
 ## Key Improvements in Timing System
 
-The new timing system provides several advantages over the legacy approach:
+The new timing system provides several advantages:
 
 1. **Separate fit and predict times**: Dual-curve plots show that GP training is O(m³) while EnKF prediction is effectively O(1) for fixed ensemble size
 2. **Internal timing**: Uses `time.perf_counter()` to eliminate Python startup and I/O overhead  
@@ -117,18 +109,6 @@ The new timing system provides several advantages over the legacy approach:
 5. **Hardened plotting**: Validates data points, uses unified JMLR styling, supports color-blind friendly palettes
 6. **Flexible visualization**: CLI flags for fixed values, legend control, and explicit scale settings
 
-## Legacy Benchmarking (Subprocess-based)
-
-The original subprocess-based benchmarking is still available but not recommended:
-
-```bash
-# Legacy workflow (includes Python startup overhead)
-uv run python da_gp/scripts/bench.py \
-    --n_obs_grid 100 500 1000 \
-    --backends sklearn --csv data/legacy.csv
-
-uv run python da_gp/scripts/plot_performance.py data/legacy.csv
-```
 
 ## Testing
 
@@ -170,7 +150,7 @@ uv run python da_gp/scripts/bench.py \
 ```
 
 Key features:
-- **In-process timing**: No subprocess overhead using `time.perf_counter()`
+- **In-process timing**: Uses `time.perf_counter()` for precise measurement
 - **Warm-up runs**: First iteration discarded to eliminate cold-start effects  
 - **Statistical robustness**: Median of multiple timing repeats (default: 5)
 - **Shared datasets**: Identical synthetic data across all backends for fair comparison
@@ -190,6 +170,44 @@ uv run python da_gp/scripts/plot_posterior.py --n_obs 50 --colorblind-friendly
 uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
     --fixed-n-obs 1000 --no-legend --output-dir figures
 ```
+
+## Troubleshooting
+
+### Shape/Broadcast Errors
+
+**Problem**: You see errors like `ValueError: operands could not be broadcast together with shapes (4000,) (1000,)` during benchmarking.
+
+**Cause**: This happens when the grid size is changed after a backend has been imported, due to Python's module import caching.
+
+**Solution**: The codebase now handles this automatically, but if you encounter issues:
+
+1. **Check import order**: Ensure `set_grid_size()` is called before importing any backend modules
+2. **Use backend parameters**: Pass `grid_size` parameter directly to backend `run()` functions instead of relying on global state
+3. **Restart Python**: If testing interactively, restart your Python session after changing grid sizes
+
+**Example of correct usage**:
+```python
+from da_gp.src.gp_common import set_grid_size
+rng = np.random.default_rng(42)
+
+# Set grid size FIRST
+set_grid_size(1000, rng)
+
+# Then import and use backends
+from da_gp.src.gp_sklearn import run
+result = run(n_obs=100, grid_size=1000)  # Pass grid_size explicitly
+```
+
+### Timing Benchmark Failures
+
+**Problem**: Benchmark runs return `inf` timing values or crash unexpectedly.
+
+**Cause**: Usually indicates shape mismatches or backend configuration issues.
+
+**Solution**: 
+1. Run with verbose logging: `python -m da_gp.scripts.bench --backends sklearn --n_obs_grid 50 100 --csv test.csv` and check logs
+2. Test individual backends first: `da-gp --backend sklearn --n_obs 100 --verbose`
+3. For DAPPER backends, ensure proper environment setup
 
 ## Licensing
 

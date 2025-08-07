@@ -16,8 +16,12 @@
 
 """Common utilities for GP and DA experiments."""
 
+import logging
 import numpy as np
 from sklearn.gaussian_process.kernels import RBF
+
+# Set up logger for this module
+logger = logging.getLogger(__name__)
 
 GRID_SIZE = 2_000          # state dimension
 OBS_SITES = 5_000          # can CLI-override to 50_000+
@@ -36,20 +40,30 @@ _rff_W = None
 _rff_b = None
 
 
-def set_grid_size(new_d: int, rng: np.random.Generator) -> None:
+def set_grid_size(new_d: int, rng: np.random.Generator) -> np.ndarray:
     """
     Dynamically change the grid size and update dependent globals.
 
     Args:
         new_d: New grid size (state dimension)
+        rng: Random number generator for reproducible RFF parameters
+        
+    Returns:
+        The newly created X_grid array for single source of truth
     """
     global GRID_SIZE, X_grid, _rff_W, _rff_b
+    
+    old_size = GRID_SIZE
     GRID_SIZE = new_d
     X_grid = np.arange(GRID_SIZE).reshape(-1, 1)
+    
+    logger.debug(f"Grid size changed: {old_size} → {new_d}, X_grid.shape = {X_grid.shape}")
+    
     # Re-draw RFF parameters for new grid size
-    global _rff_W, _rff_b
     _rff_W = rng.normal(0, 1/_length_scale, size=(RFF_DIM, 1))
     _rff_b = rng.uniform(0, 2*np.pi, size=RFF_DIM)
+    
+    return X_grid
 
 
 def _phi(x: np.ndarray) -> np.ndarray:

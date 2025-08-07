@@ -19,7 +19,7 @@
 import time
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from .gp_common import X_grid, kernel
+from .gp_common import kernel
 
 
 def init_state(rng: np.random.Generator) -> np.ndarray:
@@ -33,11 +33,16 @@ def obs_op(state: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return state[mask]
 
 
-def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, rng: np.random.Generator = None, **kwargs) -> dict:
+def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, rng: np.random.Generator = None, grid_size: int = None, **kwargs) -> dict:
     """Run scikit-learn Gaussian Process regression."""
     # Handle default case
     if rng is None:
         rng = np.random.default_rng()
+    
+    # Set grid size if provided to make backend self-contained
+    if grid_size is not None:
+        from .gp_common import set_grid_size
+        set_grid_size(grid_size, rng)
         
     # Use provided data or generate synthetic experiment
     if truth is None or mask is None or obs is None:
@@ -48,6 +53,9 @@ def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, o
     
     # Create GP with fixed kernel (no optimization)
     gp = GaussianProcessRegressor(kernel=kernel, optimizer=None, alpha=0.01)
+    
+    # Get current X_grid (avoiding cached import)
+    from .gp_common import X_grid
     
     # Fit GP to observations
     start_time = time.perf_counter()
@@ -64,6 +72,12 @@ def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, o
     n_samples = kwargs.get('n_ens', 40)
     posterior_samples = rng.standard_normal(size=(n_samples, len(posterior_mean)))
     posterior_samples = posterior_mean + posterior_samples * posterior_std
+    
+    # Early-fail shape guard to catch broadcast errors
+    assert posterior_mean.shape == truth.shape, (
+        f"Shape mismatch: posterior_mean.shape={posterior_mean.shape} != truth.shape={truth.shape}. "
+        f"This usually means grid size was changed after backend import."
+    )
     
     rmse = np.sqrt(np.mean((posterior_mean - truth)**2))
     

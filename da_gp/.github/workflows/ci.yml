@@ -43,22 +43,18 @@ jobs:
         # Ensure the output directories exist
         mkdir -p data figures
 
-        # Observation sweep (fix d=2000)
-        uv run python da_gp/scripts/bench.py --n_obs_grid 500 1000 2000 5000 \
-             --grid_size_fixed 2000 --backends sklearn dapper --csv data/bench_obs.csv
+        # Generate timing benchmark (small sweep for CI)
+        uv run python da_gp/scripts/bench.py --n_obs_grid 50 100 200 \
+             --backends sklearn dapper_enkf --csv data/timing_ci.csv --repeats 2
 
-        # Dimension sweep (fix m=2000)
-        uv run python da_gp/scripts/bench.py --dim_grid 500 1000 2000 4000 \
-             --n_obs_fixed 2000 --backends sklearn dapper --csv data/bench_dim.csv
-
-        # Generate combined performance plot
-        uv run python da_gp/scripts/plot_perf_combined.py data/bench_obs.csv data/bench_dim.csv
+        # Generate timing plots
+        uv run python da_gp/scripts/plot_timing.py data/timing_ci.csv --output-dir figures
 
         # Posterior plot
         uv run python da_gp/scripts/plot_posterior.py --backends sklearn --n_obs 50
 
-        # This check now correctly targets the root figures directory
-        git diff --exit-code figures/ || echo "Figures updated"
+        # Check figures were generated
+        ls -la figures/
 
 
   performance:

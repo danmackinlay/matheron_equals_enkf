@@ -31,13 +31,18 @@ def init_state(n_ens: int, rng: np.random.Generator) -> np.ndarray:
     return np.stack([draw_prior(rng) for _ in range(n_ens)])
 
 
-def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, method: str = 'EnKF', seed: int = None) -> dict:
+def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, method: str = 'EnKF', seed: int = None, grid_size: int = None) -> dict:
     """Internal, generalized DAPPER runner."""
     if seed is not None:
         set_seed(seed)
         rng = np.random.default_rng(seed)
     else:
         rng = np.random.default_rng()
+    
+    # Set grid size if provided to make backend self-contained
+    if grid_size is not None:
+        from .gp_common import set_grid_size
+        set_grid_size(grid_size, rng)
         
     if truth is None or mask is None or obs is None:
         from .gp_common import make_obs_mask, generate_truth, make_observations
@@ -95,6 +100,12 @@ def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np
         )
     truth_at_analysis_time = xx[HMM.tseq.kko[0]]
     predict_time = time.perf_counter() - t0
+
+    # Early-fail shape guard to catch broadcast errors
+    assert posterior_mean.shape == truth_at_analysis_time.shape, (
+        f"Shape mismatch: posterior_mean.shape={posterior_mean.shape} != truth.shape={truth_at_analysis_time.shape}. "
+        f"This usually means grid size was changed after backend import."
+    )
 
     return {
         'posterior_mean': posterior_mean,

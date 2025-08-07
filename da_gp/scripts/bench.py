@@ -22,11 +22,15 @@ import csv
 import time
 import platform
 import os
+import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from statistics import median
 from typing import Dict, Any
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 DEFAULT_BACKENDS = ["sklearn", "dapper_enkf", "dapper_letkf"]
 
@@ -48,23 +52,30 @@ def get_backend_runner(backend: str):
 
 def run_experiment_once(backend: str, n_obs: int, grid_size: int, shared_data: Dict[str, Any]) -> Dict[str, float]:
     """Run single experiment and return timing results."""
-    # Get shared synthetic data for this (n_obs, grid_size) pair
-    key = (n_obs, grid_size)
-    truth, mask, obs = shared_data[key]
-    
-    # Get backend runner
-    runner = get_backend_runner(backend)
-    
-    # Set grid size if needed
+    # CRITICAL: Set grid size BEFORE importing backend to avoid import cache issues  
     from da_gp.src.gp_common import set_grid_size
     rng = np.random.default_rng(42)  # Fixed seed for reproducibility
-    set_grid_size(grid_size, rng)
+    X_grid = set_grid_size(grid_size, rng)
     
-    # Run experiment and extract timings (note: DAPPER backends don't accept rng parameter)
-    if backend.startswith('dapper_'):
-        result = runner(n_obs=n_obs, truth=truth, mask=mask, obs=obs, seed=42)
+    # Get backend runner AFTER grid size is set
+    runner = get_backend_runner(backend)
+    
+    # For different grid sizes, we can't share data - let backends generate their own
+    # This avoids mask index mismatches
+    if shared_data and (n_obs, grid_size) in shared_data:
+        key = (n_obs, grid_size)
+        truth, mask, obs = shared_data[key]
+        # Run experiment with provided data
+        if backend.startswith('dapper_'):
+            result = runner(n_obs=n_obs, truth=truth, mask=mask, obs=obs, seed=42, grid_size=grid_size)
+        else:
+            result = runner(n_obs=n_obs, truth=truth, mask=mask, obs=obs, rng=rng, grid_size=grid_size)
     else:
-        result = runner(n_obs=n_obs, truth=truth, mask=mask, obs=obs, rng=rng)
+        # Let backend generate its own data with correct grid size
+        if backend.startswith('dapper_'):
+            result = runner(n_ens=40, n_obs=n_obs, seed=42, grid_size=grid_size)
+        else:
+            result = runner(n_obs=n_obs, rng=rng, grid_size=grid_size)
     
     return {
         'fit_time': result['fit_time'],
@@ -78,11 +89,15 @@ def run_with_repeats(backend: str, n_obs: int, grid_size: int, shared_data: Dict
     """Run experiment multiple times and return median timings."""
     results = []
     
-    # Warm-up run (discarded)
+    # Warm-up run (discarded) - propagate critical errors
     try:
         run_experiment_once(backend, n_obs, grid_size, shared_data)
     except Exception as e:
-        print(f"Warning: Warm-up failed for {backend}: {e}")
+        logger.warning(f"Warm-up failed for {backend}: {e}")
+        # Fail fast for critical shape mismatch errors to help CI detect issues
+        if "Shape mismatch" in str(e):
+            logger.error(f"Critical shape mismatch in warm-up for {backend}, propagating error for CI")
+            raise
     
     # Collect timing results
     for _ in range(n_repeats):
@@ -90,8 +105,11 @@ def run_with_repeats(backend: str, n_obs: int, grid_size: int, shared_data: Dict
             result = run_experiment_once(backend, n_obs, grid_size, shared_data)
             results.append(result)
         except Exception as e:
-            print(f"Error running {backend} (n_obs={n_obs}, grid_size={grid_size}): {e}")
-            # Return inf times to mark as failed
+            logger.error(f"Error running {backend} (n_obs={n_obs}, grid_size={grid_size}): {e}")
+            # Re-raise critical shape mismatch errors instead of masking with inf
+            if "Shape mismatch" in str(e):
+                raise
+            # Return inf times to mark as failed for other errors
             return {
                 'fit_time': float('inf'),
                 'predict_time': float('inf'), 
@@ -117,23 +135,29 @@ def run_with_repeats(backend: str, n_obs: int, grid_size: int, shared_data: Dict
 
 
 def generate_shared_data(n_obs_list: list, grid_size_list: list) -> Dict[tuple, tuple]:
-    """Generate shared synthetic datasets for all (n_obs, grid_size) combinations."""
+    """Generate shared synthetic datasets - only for identical grid size sweeps to avoid index issues."""
+    # Only generate shared data if all experiments use the same grid size
+    # This avoids mask index mismatches when grid sizes differ
+    if len(set(grid_size_list)) > 1:
+        logger.info("Multiple grid sizes detected - backends will generate their own data to avoid index mismatches")
+        return {}  # Empty dict means backends generate their own data
+        
+    # Single grid size - we can safely share data
     from da_gp.src.gp_common import set_grid_size, make_obs_mask, generate_truth, make_observations
     
     shared_data = {}
     rng = np.random.default_rng(42)  # Fixed seed for reproducibility
+    grid_size = grid_size_list[0]  # All same size
+    set_grid_size(grid_size, rng)
     
-    for grid_size in grid_size_list:
-        set_grid_size(grid_size, rng)
+    for n_obs in n_obs_list:
+        # Generate dataset - safe since all use same grid size
+        mask = make_obs_mask(n_obs, rng)
+        truth = generate_truth(rng) 
+        obs = make_observations(truth, mask, 0.1, rng)
         
-        for n_obs in n_obs_list:
-            # Generate single synthetic dataset for this configuration
-            mask = make_obs_mask(n_obs, rng)
-            truth = generate_truth(rng)
-            obs = make_observations(truth, mask, 0.1, rng)
-            
-            shared_data[(n_obs, grid_size)] = (truth, mask, obs)
-            
+        shared_data[(n_obs, grid_size)] = (truth, mask, obs)
+        
     return shared_data
 
 
@@ -159,6 +183,9 @@ def print_system_info():
 
 def main():
     """Main benchmark runner with internal timing."""
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    
     parser = argparse.ArgumentParser(description="Benchmark DA vs GP performance with internal timing")
     
     # Observation sweep parameters
