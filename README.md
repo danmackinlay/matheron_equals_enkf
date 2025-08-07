@@ -75,14 +75,14 @@ This is the complete workflow to reproduce the figures for the paper.
 ```bash
 # Step 1: Generate observation scaling data
 uv run python da_gp/scripts/bench.py \
-    --n_obs_grid 100 500 1000 2000 5000 10000 20000\
+    --n_obs_grid 100 500 1000 2000 5000 \
     --grid_size_fixed 2000 \
     --backends sklearn dapper_enkf dapper_letkf \
     --csv data/bench_obs.csv
 
 # Step 2: Generate dimension scaling data
 uv run python da_gp/scripts/bench.py \
-    --dim_grid 500 1000 2000 4000 8000 \
+    --dim_grid 250 500 1000 2000 4000 8000 \
     --n_obs_fixed 2000 \
     --backends sklearn dapper_enkf dapper_letkf \
     --csv data/bench_dim.csv

@@ -415,10 +415,7 @@ Treating EnKF analysis as an empirical Matheron  brings mature geophysical tool-
 \label{sec:numerical-demo}
 % ----------------------------------------------------------------
 
-We re-visit the classic kriging toy problem but now compare two solvers side-by-side.
-Since our focus here is to demonstrate simplicity of implementation, we use the off-the shelf solver DAPPER~\cite{Raanes2024DAPPER} which allows us to demonstrate the parallels.
-We note however that DAPPER is not optimised for high efficiency posterior sampling and we do not expect it to achieve maximally efficient scaling with problem size; in particular its scaling with state dimension seems to be sub-optimal.
-Code is avaialble in supplemental
+We revisit the classic 1D kriging problem to demonstrate both the direct equivalence of the EnKF update to GP regression and the power of extending this link. We compare three solvers side-by-side: a standard GP implementation, its equivalent EnKF formulation, and the Local Ensemble Transform Kalman Filter (LETKF)~\cite{Bocquet2020Online}, a popular data assimilation variant that introduces covariance localization. This illustrates how mature geophysical tools can be immediately repurposed for scalable GP inference. Code is available in the supplement.
 
 \begin{quote}
 \textbf{Task.}  Recover a latent field
@@ -433,47 +430,34 @@ We test grid sizes $d\in\{200,400,600,800\}$.
 
 \paragraph{Methods.}
 \begin{itemize}
-\item \textbf{EnKF (analytic).}  \eqref{eq:matheron-update} with the
-      $m\!\times\!m$ Woodbury inversion; cost $\mathcal O(dm^{2})$.
-\item \textbf{GP regression.}  \texttt{GaussianProcessRegressor}
-      from \textsc{scikit-learn}.
+    \item \textbf{GP Regression:} The exact posterior computed via \texttt{GaussianProcessRegressor} from \textsc{scikit-learn}. This serves as our ground truth and scales as $\mathcal{O}(m^3)$ with observations.
+    \item \textbf{EnKF:} An implementation of the standard Ensemble Kalman Filter using DAPPER~\cite{Raanes2024DAPPER}. It is the direct, empirical equivalent of the Matheron update and is expected to be computationally cheaper than the exact GP.
+    \item \textbf{LETKF:} The Local Ensemble Transform Kalman Filter \cite{Hunt2007Efficient,Bocquet2020Online}, also implemented in DAPPER. This method introduces localization, where each state variable is updated using only a subset of nearby observations. This is a common technique in data assimilation for improving performance in high-dimensional systems.
 \end{itemize}
 
 \paragraph{Accuracy.}
-Figure~\ref{fig:posterior-samples} shows 100 draws from each posterior at
-$d=1000$.  The two methods are mathematically equivalent; the EnKF
-mean differs from the GP mean by
-$\operatorname{RMSE}=7.3\!\times\!10^{-14}$ (machine precision).
-Both methods achieve $\operatorname{RMSE}=0.036$ against ground truth.
+Figure~\ref{fig:posterior-samples} shows posterior draws from all three methods.
+As predicted by the theory, the means of the standard GP and the EnKF are numerically identical (RMSE $<10^{-13}$). The LETKF, being a localized approximation, produces a slightly different posterior mean but remains an excellent fit to the true field. This highlights the trade-off between exactness and the assumptions made for computational gain.
 
 \paragraph{Speed.}
-Figure~\ref{fig:posterior-timing} plots wall-clock time with error bars (5 trials each).
-The EnKF maintains computational efficiency in both regimes,
-scaling as $\mathcal{O}(dm^2)$ with observations and $\mathcal{O}(d)$ with state dimension,
-while GP regression scales as $\mathcal{O}(m^3)$ and requires full kernel matrix operations.
+\figureref{fig:perf-scaling} shows the computational scaling of the three methods. The standard GP's cubic scaling with observations makes it the slowest. The EnKF is significantly faster, showcasing the benefit of the ensemble approach. The LETKF is faster still, especially as the state dimension grows, because localization breaks the global problem into many smaller, independent calculations. This demonstrates the profound efficiency gains possible by adopting mature DA techniques.
 
 \begin{figure}
   \centering
   \includegraphics[width=\linewidth]{fig_posterior_samples.pdf}
-  \caption{Posterior draws at $d=1000$.
-           Means overlap to eye and to $<\!0.03$ RMSE.}
+  \caption{Posterior draws from the exact GP (sklearn), EnKF, and LETKF. The GP and EnKF posteriors are visually indistinguishable, while the localized LETKF provides a close approximation.}
   \label{fig:posterior-samples}
 \end{figure}
 
 \begin{figure}[t]
   \floatconts
     {fig:perf-scaling} % label
-    {\caption{Left: Wall-clock time vs. number of observations ($m$) for a fixed state dimension ($d=2,000$). Right: Wall-clock time vs. state dimension ($d$) for a fixed number of observations ($m=2,000$).}} % caption
+    {\caption{Wall-clock time comparison. Left: Scaling vs. number of observations ($m$). Right: Scaling vs. state dimension ($d$). The localized LETKF demonstrates superior scalability in both regimes.}} % caption
     {\centering\includegraphics[width=\linewidth]{perf_scaling.pdf}}
 \end{figure}
 
 \paragraph{Take-away.}
-A commodity EnKF implementation delivers path-wise GP draws whose accuracy matches the
-analytic update while retaining the $\mathcal O(Nd)$ cost familiar to
-the geophysical community.
-This is achievable with  with \emph{zero}
-algebraic changes to the off-the-shelf geophysical code.
-The various conveniences built into the geophysical toolkits such as covariance localisation etc are potentially useful to the GP inference community, as is the prospect of improved scaling with number of observations and dimensionality of state.
+The results confirm that a standard EnKF is a computationally efficient method for path-wise GP sampling. More importantly, the equivalence acts as a bridge to a rich ecosystem of data assimilation techniques. The LETKF demonstrates this powerfully: by simply changing one line of code to invoke a localized filter, we gain access to a highly scalable inference method that parallels sparse or domain-decomposition approaches in the GP literature. This opens the door for the GP community to leverage decades of mature, practical DA engineering ``for free.''
 
 
 
