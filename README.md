@@ -30,6 +30,37 @@ This project compares three different inference methods:
 - `dapper_enkf`: An implementation using the standard Ensemble Kalman Filter (EnKF) from the DAPPER library. This is the global, non-localized data assimilation method.
 - `dapper_letkf`: An implementation using the Local Ensemble Transform Kalman Filter (LETKF) from DAPPER. This method applies localization, only updating state variables using nearby observations, which is analogous to sparse or localized GP methods.
 
+## Functional Architecture
+
+The codebase uses a **side-effect-free functional design** to eliminate global state and ensure reliable experiments:
+
+### Problem Specification
+All functions receive explicit configuration through an immutable `Problem` dataclass:
+```python
+from da_gp.src.gp_common import Problem
+
+problem = Problem(
+    grid_size=1000,     # State dimension
+    n_obs=100,          # Number of observations  
+    noise_std=0.1,      # Observation noise
+    rng=np.random.default_rng(42)  # Reproducible RNG
+)
+```
+
+### Pure Functions
+- **No global variables**: Functions receive all data as explicit arguments
+- **No mutation**: Functions return new values instead of modifying state
+- **Deterministic**: Same inputs always produce identical outputs
+- **Parallelizable**: No shared state means no race conditions
+
+### Benefits
+- **Import-order independent**: No need to set global state before importing backends
+- **Test isolation**: Each test uses fresh `Problem` instances  
+- **Easy scaling**: Straightforward to parallelize across processes
+- **Debuggable**: Clear data flow without hidden dependencies
+
+All backends follow the signature: `run(problem: Problem, **kwargs) -> dict`
+
 ## Installation
 
 **IMPORTANT**: All commands should be run from the root directory of this repository.
@@ -173,30 +204,31 @@ uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
 
 ## Troubleshooting
 
-### Shape/Broadcast Errors
+### Shape/Broadcast Errors (RESOLVED)
 
-**Problem**: You see errors like `ValueError: operands could not be broadcast together with shapes (4000,) (1000,)` during benchmarking.
+**Previous Problem**: Broadcast errors like `ValueError: operands could not be broadcast together with shapes` occurred when grid sizes changed after backend imports.
 
-**Cause**: This happens when the grid size is changed after a backend has been imported, due to Python's module import caching.
+**Solution**: The codebase now uses a **functional architecture** that completely eliminates these errors:
 
-**Solution**: The codebase now handles this automatically, but if you encounter issues:
+- All functions are **side-effect-free** and receive explicit `Problem` arguments
+- No global state means no import-order dependencies  
+- Each experiment uses fresh, immutable `Problem` instances
 
-1. **Check import order**: Ensure `set_grid_size()` is called before importing any backend modules
-2. **Use backend parameters**: Pass `grid_size` parameter directly to backend `run()` functions instead of relying on global state
-3. **Restart Python**: If testing interactively, restart your Python session after changing grid sizes
-
-**Example of correct usage**:
+**Modern usage** (no global state):
 ```python
-from da_gp.src.gp_common import set_grid_size
-rng = np.random.default_rng(42)
-
-# Set grid size FIRST
-set_grid_size(1000, rng)
-
-# Then import and use backends
+from da_gp.src.gp_common import Problem
 from da_gp.src.gp_sklearn import run
-result = run(n_obs=100, grid_size=1000)  # Pass grid_size explicitly
+
+# Create problem - no global state to manage
+problem = Problem(grid_size=1000, n_obs=100, noise_std=0.1)
+result = run(problem)
+
+# Different problem sizes just work
+problem2 = Problem(grid_size=2000, n_obs=100, noise_std=0.1)
+result2 = run(problem2)  # No conflicts!
 ```
+
+These errors are **prevented by design** in the current functional implementation.
 
 ### Timing Benchmark Failures
 

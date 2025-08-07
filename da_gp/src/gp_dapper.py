@@ -18,51 +18,52 @@
 
 import time
 import numpy as np
-from .gp_common import GRID_SIZE
+from .gp_common import Problem, draw_prior, generate_experiment_data, make_grid
 
 from dapper import da_methods, mods
 from dapper.tools.randvars import RV
 from dapper.tools.seeding import set_seed
 
 
-def init_state(n_ens: int, rng: np.random.Generator) -> np.ndarray:
-    """Initialize a zero-mean ensemble with the correct spatial covariance."""
-    from .gp_common import draw_prior
-    return np.stack([draw_prior(rng) for _ in range(n_ens)])
-
-
-def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, method: str = 'EnKF', seed: int = None, grid_size: int = None) -> dict:
-    """Internal, generalized DAPPER runner."""
+def _run(problem: Problem, *, n_ens: int = 40, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, method: str = 'EnKF', seed: int = None) -> dict:
+    """Internal, generalized DAPPER runner.
+    
+    Args:
+        problem: Problem specification containing grid_size, n_obs, noise_std, rng
+        n_ens: Number of ensemble members
+        truth: Optional pre-generated truth (if None, generates from problem)
+        mask: Optional pre-generated observation mask (if None, generates from problem)  
+        obs: Optional pre-generated observations (if None, generates from problem)
+        method: DA method ('EnKF' or 'LETKF')
+        seed: Optional seed for DAPPER's internal seeding
+        
+    Returns:
+        Dictionary with posterior statistics and timing information
+    """
+    # Set DAPPER's internal seed if provided
     if seed is not None:
         set_seed(seed)
-        rng = np.random.default_rng(seed)
-    else:
-        rng = np.random.default_rng()
-    
-    # Set grid size if provided to make backend self-contained
-    if grid_size is not None:
-        from .gp_common import set_grid_size
-        set_grid_size(grid_size, rng)
         
+    # Use provided data or generate from problem specification  
     if truth is None or mask is None or obs is None:
-        from .gp_common import make_obs_mask, generate_truth, make_observations
-        mask = make_obs_mask(n_obs, rng)
-        truth = generate_truth(rng)
-        obs = make_observations(truth, mask, 0.1, rng)
+        truth, mask, obs = generate_experiment_data(problem)
 
     # Prior: Zero-mean ensemble with kernel-derived covariance
-    initial_ensemble = init_state(n_ens, rng)
-    X0 = RV(M=GRID_SIZE, func=lambda N: initial_ensemble)
+    def init_ensemble():
+        return np.stack([draw_prior(problem.grid_size, problem.rng) for _ in range(n_ens)])
+    
+    initial_ensemble = init_ensemble()
+    X0 = RV(M=problem.grid_size, func=lambda N: initial_ensemble)
 
     # HMM components: Use the minimal working timeline
-    Dyn = {'M': GRID_SIZE, 'model': mods.Id_op(), 'noise': 0}
-    Obs = mods.partial_Id_Obs(GRID_SIZE, mask)
+    Dyn = {'M': problem.grid_size, 'model': mods.Id_op(), 'noise': 0}
+    Obs = mods.partial_Id_Obs(problem.grid_size, mask)
     Obs['noise'] = 0.01  # Variance
     
     # Add localizer for LETKF if needed
     if method == 'LETKF':
         from dapper.tools.localization import nd_Id_localization
-        Obs['localizer'] = nd_Id_localization((GRID_SIZE,), obs_inds=mask)
+        Obs['localizer'] = nd_Id_localization((problem.grid_size,), obs_inds=mask)
         
     tseq = mods.Chronology(dt=1, dko=1, T=1)  # Working chronology
     HMM = mods.HiddenMarkovModel(Dyn, Obs, tseq=tseq, X0=X0)
@@ -92,20 +93,14 @@ def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np
     if hasattr(da_method, 'E'):
         posterior_ensemble = da_method.E
     else:
-        # Reconstruct ensemble by sampling from posterior statistics using seeded RNG
-        posterior_ensemble = rng.multivariate_normal(
+        # Reconstruct ensemble by sampling from posterior statistics using problem's RNG
+        posterior_ensemble = problem.rng.multivariate_normal(
             posterior_mean, 
             np.eye(len(posterior_mean)) * da_method.stats.spread.a[0].mean()**2,
             size=n_ens
         )
     truth_at_analysis_time = xx[HMM.tseq.kko[0]]
     predict_time = time.perf_counter() - t0
-
-    # Early-fail shape guard to catch broadcast errors
-    assert posterior_mean.shape == truth_at_analysis_time.shape, (
-        f"Shape mismatch: posterior_mean.shape={posterior_mean.shape} != truth.shape={truth_at_analysis_time.shape}. "
-        f"This usually means grid size was changed after backend import."
-    )
 
     return {
         'posterior_mean': posterior_mean,
@@ -118,20 +113,20 @@ def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np
         'predict_time': predict_time,
         'total_time': fit_time + predict_time,
         'n_ens': n_ens,
-        'n_obs': n_obs,
+        'n_obs': problem.n_obs,
     }
 
 
-def run_enkf(**kwargs):
+def run_enkf(problem: Problem, **kwargs):
     """Public-facing runner for standard EnKF."""
-    return _run(method='EnKF', **kwargs)
+    return _run(problem, method='EnKF', **kwargs)
 
 
-def run_letkf(**kwargs):
+def run_letkf(problem: Problem, **kwargs):
     """Public-facing runner for LETKF."""
-    return _run(method='LETKF', **kwargs)
+    return _run(problem, method='LETKF', **kwargs)
 
 
-def run(**kwargs):
-    """Backward compatibility: defaults to EnKF."""
-    return run_enkf(**kwargs)
+def run(problem: Problem, **kwargs):
+    """Main entry point: defaults to EnKF."""
+    return run_enkf(problem, **kwargs)

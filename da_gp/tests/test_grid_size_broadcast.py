@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test grid size changes and broadcast error prevention."""
+"""Test Problem-based functional approach and benchmark pipeline."""
 
 import pytest
 import numpy as np
@@ -23,25 +23,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Store original grid size to restore after tests
-_ORIGINAL_GRID_SIZE = None
-
-def setup_module():
-    """Save original grid size before tests."""
-    global _ORIGINAL_GRID_SIZE
-    from da_gp.src.gp_common import GRID_SIZE
-    _ORIGINAL_GRID_SIZE = GRID_SIZE
-
-def teardown_module():
-    """Restore original grid size after tests."""
-    from da_gp.src.gp_common import set_grid_size
-    rng = np.random.default_rng(42)
-    set_grid_size(_ORIGINAL_GRID_SIZE, rng)
+from da_gp.src.gp_common import Problem
 
 
 @pytest.mark.parametrize("grid_size", [500, 1000, 4000])
 def test_benchmark_with_different_grid_sizes(grid_size):
-    """Test that benchmark pipeline works with different grid sizes without broadcast errors."""
+    """Test that benchmark pipeline works with different grid sizes using functional approach."""
     with tempfile.TemporaryDirectory() as tmpdir:
         csv_path = Path(tmpdir) / f"test_grid_{grid_size}.csv"
         
@@ -105,75 +92,75 @@ def test_dimension_scaling_benchmark():
         assert set(unique_sizes) == {250, 500, 1000}
 
 
-def test_shape_mismatch_detection():
-    """Test that shape mismatches are properly detected and reported."""
-    from da_gp.src.gp_common import set_grid_size
+def test_problem_consistency():
+    """Test that Problem instances ensure consistency and prevent mismatch errors."""
+    from da_gp.src.gp_sklearn import run
+    from da_gp.src.gp_common import generate_experiment_data
+    
+    # Create problem and generate data
+    problem1 = Problem(grid_size=1000, n_obs=50, noise_std=0.1, rng=np.random.default_rng(42))
+    truth, mask, obs = generate_experiment_data(problem1)
+    
+    # With functional approach, using the same problem should always work
+    result = run(problem1, truth=truth, mask=mask, obs=obs)
+    assert result['posterior_mean'].shape == (1000,)
+    assert result['posterior_mean'].shape == truth.shape
+    
+    # Different problem with different grid size should also work 
+    problem2 = Problem(grid_size=500, n_obs=50, noise_std=0.1, rng=np.random.default_rng(42))
+    result2 = run(problem2)  # Generate its own data
+    assert result2['posterior_mean'].shape == (500,)
+
+
+def test_functional_determinism():
+    """Test that functional approach gives deterministic results."""
     from da_gp.src.gp_sklearn import run
     
-    # Create data with one grid size
-    rng = np.random.default_rng(42)
-    set_grid_size(1000, rng)
+    # Same problem, same seed should give identical results
+    problem = Problem(grid_size=500, n_obs=50, noise_std=0.1, rng=np.random.default_rng(42))
+    result1 = run(problem)
     
-    from da_gp.src.gp_common import make_obs_mask, generate_truth, make_observations
-    mask = make_obs_mask(50, rng)
-    truth = generate_truth(rng) 
-    obs = make_observations(truth, mask, 0.1, rng)
+    # Create identical problem
+    problem2 = Problem(grid_size=500, n_obs=50, noise_std=0.1, rng=np.random.default_rng(42))
+    result2 = run(problem2)
     
-    # Change grid size after data generation (simulating the bug)
-    set_grid_size(500, rng)  # Different size
-    
-    # This should now raise an IndexError (mask indices out of bounds) or AssertionError
-    # The fix prevents this by either catching the index error or the shape mismatch
-    with pytest.raises((IndexError, AssertionError)):
-        run(n_obs=50, truth=truth, mask=mask, obs=obs, rng=rng)
-        
-    # When we pass explicit grid_size, it should work correctly
-    result = run(n_obs=50, truth=truth, mask=mask, obs=obs, rng=rng, grid_size=1000)
-    assert result['posterior_mean'].shape == truth.shape
+    # Results should be identical (deterministic)
+    assert result1['rmse'] == result2['rmse']
+    np.testing.assert_array_equal(result1['posterior_mean'], result2['posterior_mean'])
 
 
-def test_backend_import_order():
-    """Test that backend import order doesn't affect results."""
-    from da_gp.src.gp_common import set_grid_size
+@pytest.mark.parametrize("backend", ["sklearn"])  # Add dapper backends when available  
+@pytest.mark.parametrize("grid_size", [500, 1000, 2000])
+def test_single_backend_different_sizes(backend, grid_size):
+    """Test individual backend with different grid sizes using functional approach."""
+    if backend == "sklearn":
+        from da_gp.src.gp_sklearn import run
     
-    rng = np.random.default_rng(42)
+    # Create problem for this grid size
+    problem = Problem(grid_size=grid_size, n_obs=50, noise_std=0.1, rng=np.random.default_rng(42))
     
-    # Test 1: Set grid size first, then import
-    set_grid_size(500, rng)
-    from da_gp.src.gp_sklearn import run as sklearn_run
+    # Run experiment
+    result = run(problem)
     
-    # Generate data
-    from da_gp.src.gp_common import make_obs_mask, generate_truth, make_observations
-    mask = make_obs_mask(50, rng)
-    truth = generate_truth(rng)
-    obs = make_observations(truth, mask, 0.1, rng)
-    
-    # This should work without errors
-    result = sklearn_run(n_obs=50, truth=truth, mask=mask, obs=obs, rng=rng)
+    # Should work correctly with proper shapes
+    assert result['posterior_mean'].shape == (grid_size,)
     assert 'rmse' in result
-    assert result['posterior_mean'].shape == truth.shape
+    assert result['rmse'] > 0  # Should be reasonable RMSE value
 
 
-@pytest.mark.parametrize("backend", ["sklearn"])  # Add dapper backends when available
-def test_single_backend_grid_changes(backend):
-    """Test individual backend with grid size changes."""
-    # This test ensures each backend handles grid size changes properly
-    rng = np.random.default_rng(42)
+def test_problem_validation():
+    """Test that Problem validates inputs properly."""
+    # Valid problem should work
+    problem = Problem(grid_size=1000, n_obs=50, noise_std=0.1)
+    assert problem.grid_size == 1000
+    assert problem.n_obs == 50
     
-    for grid_size in [500, 1000]:
-        from da_gp.src.gp_common import set_grid_size, make_obs_mask, generate_truth, make_observations
+    # Invalid inputs should raise errors
+    with pytest.raises(ValueError, match="grid_size must be positive"):
+        Problem(grid_size=0, n_obs=50)
+    
+    with pytest.raises(ValueError, match="n_obs must be positive"):  
+        Problem(grid_size=1000, n_obs=0)
         
-        # Set grid size and generate matching data
-        set_grid_size(grid_size, rng)
-        mask = make_obs_mask(50, rng)
-        truth = generate_truth(rng)
-        obs = make_observations(truth, mask, 0.1, rng)
-        
-        # Import backend after grid size is set
-        if backend == "sklearn":
-            from da_gp.src.gp_sklearn import run
-            result = run(n_obs=50, truth=truth, mask=mask, obs=obs, rng=rng)
-        
-        # Should work without shape mismatches
-        assert result['posterior_mean'].shape == (grid_size,)
-        assert result['posterior_mean'].shape == truth.shape
+    with pytest.raises(ValueError, match="noise_std must be non-negative"):
+        Problem(grid_size=1000, n_obs=50, noise_std=-1.0)

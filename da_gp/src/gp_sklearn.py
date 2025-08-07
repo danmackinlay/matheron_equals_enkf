@@ -19,43 +19,32 @@
 import time
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from .gp_common import kernel
+from .gp_common import Problem, make_kernel, make_grid, generate_experiment_data
 
 
-def init_state(rng: np.random.Generator) -> np.ndarray:
-    """Initialize GP state (not used, included for API consistency)."""
-    from .gp_common import generate_truth
-    return generate_truth(rng)
-
-
-def obs_op(state: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """Observation operator (not used, included for API consistency)."""
-    return state[mask]
-
-
-def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, rng: np.random.Generator = None, grid_size: int = None, **kwargs) -> dict:
-    """Run scikit-learn Gaussian Process regression."""
-    # Handle default case
-    if rng is None:
-        rng = np.random.default_rng()
+def run(problem: Problem, *, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, **kwargs) -> dict:
+    """Run scikit-learn Gaussian Process regression.
     
-    # Set grid size if provided to make backend self-contained
-    if grid_size is not None:
-        from .gp_common import set_grid_size
-        set_grid_size(grid_size, rng)
+    Args:
+        problem: Problem specification containing grid_size, n_obs, noise_std, rng
+        truth: Optional pre-generated truth (if None, generates from problem)
+        mask: Optional pre-generated observation mask (if None, generates from problem)  
+        obs: Optional pre-generated observations (if None, generates from problem)
+        **kwargs: Additional configuration (e.g. n_ens for sample count)
         
-    # Use provided data or generate synthetic experiment
+    Returns:
+        Dictionary with posterior statistics and timing information
+    """
+    # Use provided data or generate from problem specification
     if truth is None or mask is None or obs is None:
-        from .gp_common import make_obs_mask, generate_truth, make_observations
-        mask = make_obs_mask(n_obs, rng)
-        truth = generate_truth(rng)
-        obs = make_observations(truth, mask, 0.1, rng)
+        truth, mask, obs = generate_experiment_data(problem)
+    
+    # Create spatial grid and kernel
+    X_grid = make_grid(problem.grid_size)
+    kernel = make_kernel()
     
     # Create GP with fixed kernel (no optimization)
     gp = GaussianProcessRegressor(kernel=kernel, optimizer=None, alpha=0.01)
-    
-    # Get current X_grid (avoiding cached import)
-    from .gp_common import X_grid
     
     # Fit GP to observations
     start_time = time.perf_counter()
@@ -68,17 +57,12 @@ def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, o
     posterior_mean, posterior_std = gp.predict(X_grid, return_std=True)
     predict_time = time.perf_counter() - start_time
     
-    # Sample from posterior (approximate) using provided RNG
+    # Sample from posterior (approximate) using problem's RNG
     n_samples = kwargs.get('n_ens', 40)
-    posterior_samples = rng.standard_normal(size=(n_samples, len(posterior_mean)))
+    posterior_samples = problem.rng.standard_normal(size=(n_samples, len(posterior_mean)))
     posterior_samples = posterior_mean + posterior_samples * posterior_std
     
-    # Early-fail shape guard to catch broadcast errors
-    assert posterior_mean.shape == truth.shape, (
-        f"Shape mismatch: posterior_mean.shape={posterior_mean.shape} != truth.shape={truth.shape}. "
-        f"This usually means grid size was changed after backend import."
-    )
-    
+    # Compute RMSE
     rmse = np.sqrt(np.mean((posterior_mean - truth)**2))
     
     return {
@@ -92,6 +76,6 @@ def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, o
         'fit_time': fit_time,
         'predict_time': predict_time,
         'total_time': fit_time + predict_time,
-        'n_obs': n_obs,
+        'n_obs': problem.n_obs,
         'log_marginal_likelihood': gp.log_marginal_likelihood(),
     }

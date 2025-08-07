@@ -27,12 +27,22 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from statistics import median
-from typing import Dict, Any
+from typing import Dict, Any, NamedTuple
+
+from da_gp.src.gp_common import Problem, generate_experiment_data
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 DEFAULT_BACKENDS = ["sklearn", "dapper_enkf", "dapper_letkf"]
+
+
+class Timing(NamedTuple):
+    """Timing results for a single experiment."""
+    fit_time: float
+    predict_time: float
+    total_time: float
+    rmse: float
 
 
 def get_backend_runner(backend: str):
@@ -50,112 +60,117 @@ def get_backend_runner(backend: str):
         raise ValueError(f"Unknown backend: {backend}")
 
 
-def run_experiment_once(backend: str, n_obs: int, grid_size: int, shared_data: Dict[str, Any]) -> Dict[str, float]:
-    """Run single experiment and return timing results."""
-    # CRITICAL: Set grid size BEFORE importing backend to avoid import cache issues  
-    from da_gp.src.gp_common import set_grid_size
-    rng = np.random.default_rng(42)  # Fixed seed for reproducibility
-    X_grid = set_grid_size(grid_size, rng)
+def run_experiment_once(backend: str, problem: Problem, shared_data: Dict[tuple, tuple] = None) -> Timing:
+    """Run single experiment and return timing results.
     
-    # Get backend runner AFTER grid size is set
+    Args:
+        backend: Backend name ('sklearn', 'dapper_enkf', 'dapper_letkf')
+        problem: Problem specification (grid_size, n_obs, noise_std, rng)
+        shared_data: Optional pre-generated data to reuse
+        
+    Returns:
+        Timing results as named tuple
+    """
     runner = get_backend_runner(backend)
     
-    # For different grid sizes, we can't share data - let backends generate their own
-    # This avoids mask index mismatches
-    if shared_data and (n_obs, grid_size) in shared_data:
-        key = (n_obs, grid_size)
+    # Use shared data if available for this problem configuration
+    truth, mask, obs = None, None, None
+    key = (problem.n_obs, problem.grid_size)
+    if shared_data and key in shared_data:
         truth, mask, obs = shared_data[key]
-        # Run experiment with provided data
-        if backend.startswith('dapper_'):
-            result = runner(n_obs=n_obs, truth=truth, mask=mask, obs=obs, seed=42, grid_size=grid_size)
-        else:
-            result = runner(n_obs=n_obs, truth=truth, mask=mask, obs=obs, rng=rng, grid_size=grid_size)
-    else:
-        # Let backend generate its own data with correct grid size
-        if backend.startswith('dapper_'):
-            result = runner(n_ens=40, n_obs=n_obs, seed=42, grid_size=grid_size)
-        else:
-            result = runner(n_obs=n_obs, rng=rng, grid_size=grid_size)
     
-    return {
-        'fit_time': result['fit_time'],
-        'predict_time': result['predict_time'],
-        'total_time': result['total_time'],
-        'rmse': result['rmse']
-    }
+    # Run experiment (backend will generate data if not provided)
+    if backend.startswith('dapper_'):
+        result = runner(problem, truth=truth, mask=mask, obs=obs, seed=42)
+    else:
+        result = runner(problem, truth=truth, mask=mask, obs=obs)
+    
+    return Timing(
+        fit_time=result['fit_time'],
+        predict_time=result['predict_time'], 
+        total_time=result['total_time'],
+        rmse=result['rmse']
+    )
 
 
-def run_with_repeats(backend: str, n_obs: int, grid_size: int, shared_data: Dict[str, Any], n_repeats: int = 5) -> Dict[str, float]:
-    """Run experiment multiple times and return median timings."""
+def run_with_repeats(backend: str, problem: Problem, shared_data: Dict[tuple, tuple] = None, n_repeats: int = 5) -> Timing:
+    """Run experiment multiple times and return median timings.
+    
+    Args:
+        backend: Backend name
+        problem: Problem specification
+        shared_data: Optional pre-generated data to reuse
+        n_repeats: Number of repeat runs for statistical robustness
+        
+    Returns:
+        Median timing results as named tuple
+    """
     results = []
     
-    # Warm-up run (discarded) - propagate critical errors
+    # Warm-up run (discarded) - fail fast on critical errors
     try:
-        run_experiment_once(backend, n_obs, grid_size, shared_data)
+        run_experiment_once(backend, problem, shared_data)
     except Exception as e:
         logger.warning(f"Warm-up failed for {backend}: {e}")
-        # Fail fast for critical shape mismatch errors to help CI detect issues
-        if "Shape mismatch" in str(e):
-            logger.error(f"Critical shape mismatch in warm-up for {backend}, propagating error for CI")
+        # Propagate errors during warm-up to help CI detect issues
+        raise
+    
+    # Collect timing results from multiple runs
+    for i in range(n_repeats):
+        try:
+            # Create fresh problem instance for each repeat to avoid mutation
+            fresh_problem = Problem(
+                grid_size=problem.grid_size,
+                n_obs=problem.n_obs,
+                noise_std=problem.noise_std,
+                rng=np.random.default_rng(42 + i)  # Different seed per repeat
+            )
+            timing = run_experiment_once(backend, fresh_problem, shared_data)
+            results.append(timing)
+        except Exception as e:
+            logger.error(f"Experiment {i+1}/{n_repeats} failed for {backend}: {e}")
             raise
     
-    # Collect timing results
-    for _ in range(n_repeats):
-        try:
-            result = run_experiment_once(backend, n_obs, grid_size, shared_data)
-            results.append(result)
-        except Exception as e:
-            logger.error(f"Error running {backend} (n_obs={n_obs}, grid_size={grid_size}): {e}")
-            # Re-raise critical shape mismatch errors instead of masking with inf
-            if "Shape mismatch" in str(e):
-                raise
-            # Return inf times to mark as failed for other errors
-            return {
-                'fit_time': float('inf'),
-                'predict_time': float('inf'), 
-                'total_time': float('inf'),
-                'rmse': float('inf')
-            }
-    
-    if not results:
-        return {
-            'fit_time': float('inf'),
-            'predict_time': float('inf'),
-            'total_time': float('inf'), 
-            'rmse': float('inf')
-        }
-    
-    # Return median times
-    return {
-        'fit_time': median([r['fit_time'] for r in results]),
-        'predict_time': median([r['predict_time'] for r in results]),
-        'total_time': median([r['total_time'] for r in results]),
-        'rmse': median([r['rmse'] for r in results])
-    }
+    # Compute medians
+    return Timing(
+        fit_time=median([r.fit_time for r in results]),
+        predict_time=median([r.predict_time for r in results]),
+        total_time=median([r.total_time for r in results]),
+        rmse=median([r.rmse for r in results])
+    )
 
 
 def generate_shared_data(n_obs_list: list, grid_size_list: list) -> Dict[tuple, tuple]:
-    """Generate shared synthetic datasets - only for identical grid size sweeps to avoid index issues."""
+    """Generate shared synthetic datasets using functional approach.
+    
+    Only generates shared data when all experiments use the same grid size
+    to avoid mask index mismatches.
+    
+    Args:
+        n_obs_list: List of observation counts to generate data for
+        grid_size_list: List of grid sizes for experiments
+        
+    Returns:
+        Dictionary mapping (n_obs, grid_size) -> (truth, mask, obs)
+    """
     # Only generate shared data if all experiments use the same grid size
-    # This avoids mask index mismatches when grid sizes differ
     if len(set(grid_size_list)) > 1:
-        logger.info("Multiple grid sizes detected - backends will generate their own data to avoid index mismatches")
+        logger.info("Multiple grid sizes detected - backends will generate their own data")
         return {}  # Empty dict means backends generate their own data
         
     # Single grid size - we can safely share data
-    from da_gp.src.gp_common import set_grid_size, make_obs_mask, generate_truth, make_observations
-    
     shared_data = {}
-    rng = np.random.default_rng(42)  # Fixed seed for reproducibility
     grid_size = grid_size_list[0]  # All same size
-    set_grid_size(grid_size, rng)
     
     for n_obs in n_obs_list:
-        # Generate dataset - safe since all use same grid size
-        mask = make_obs_mask(n_obs, rng)
-        truth = generate_truth(rng) 
-        obs = make_observations(truth, mask, 0.1, rng)
-        
+        # Create problem for this configuration and generate data
+        problem = Problem(
+            grid_size=grid_size,
+            n_obs=n_obs,
+            noise_std=0.1,
+            rng=np.random.default_rng(42)  # Fixed seed for reproducibility
+        )
+        truth, mask, obs = generate_experiment_data(problem)
         shared_data[(n_obs, grid_size)] = (truth, mask, obs)
         
     return shared_data
@@ -299,20 +314,28 @@ def main():
                 current_run += 1
                 print(f"[{current_run}/{total_runs}] {backend} (n_obs={n_obs}, grid_size={grid_size})")
                 
-                timing_result = run_with_repeats(backend, n_obs, grid_size, shared_data, args.repeats)
+                # Create problem instance for this configuration
+                problem = Problem(
+                    grid_size=grid_size,
+                    n_obs=n_obs,
+                    noise_std=0.1,
+                    rng=np.random.default_rng(42)  # Fixed seed for reproducibility
+                )
+                
+                timing_result = run_with_repeats(backend, problem, shared_data, args.repeats)
                 
                 results.append({
                     'backend': backend,
                     'n_obs': n_obs,
                     'grid_size': grid_size,
-                    'fit_time': timing_result['fit_time'],
-                    'predict_time': timing_result['predict_time'],
-                    'total_time': timing_result['total_time'],
-                    'rmse': timing_result['rmse']
+                    'fit_time': timing_result.fit_time,
+                    'predict_time': timing_result.predict_time,
+                    'total_time': timing_result.total_time,
+                    'rmse': timing_result.rmse
                 })
                 
-                print(f"  fit: {timing_result['fit_time']:.3f}s, predict: {timing_result['predict_time']:.3f}s, total: {timing_result['total_time']:.3f}s")
-                print(f"  RMSE: {timing_result['rmse']:.4f}")
+                print(f"  fit: {timing_result.fit_time:.3f}s, predict: {timing_result.predict_time:.3f}s, total: {timing_result.total_time:.3f}s")
+                print(f"  RMSE: {timing_result.rmse:.4f}")
                 print()
     
     # Save results to CSV
