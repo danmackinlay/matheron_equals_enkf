@@ -33,12 +33,33 @@ def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comp
     # Setup unified styling
     backend_styles = setup_figure_style(colorblind_friendly=colorblind_friendly)
     
+    # Auto-detect sweep type based on data variation
+    n_obs_unique = df['n_obs'].nunique()
+    grid_size_unique = df['grid_size'].nunique()
+    
+    if n_obs_unique > 1 and grid_size_unique == 1:
+        # Observation sweep
+        x_col = 'n_obs'
+        x_label = "observations (m)"
+        sort_col = 'n_obs'
+    elif grid_size_unique > 1 and n_obs_unique == 1:
+        # Dimension sweep  
+        x_col = 'grid_size'
+        x_label = "state dimension (d)"
+        sort_col = 'grid_size'
+    else:
+        # Fallback - use n_obs if both vary or neither vary
+        x_col = 'n_obs'
+        x_label = "observations (m)"
+        sort_col = 'n_obs'
+        print(f"Warning: Ambiguous sweep type (n_obs unique: {n_obs_unique}, grid_size unique: {grid_size_unique}), defaulting to n_obs")
+    
     # Create figure with two subplots side by side
     fig, (ax_fit, ax_pred) = plt.subplots(1, 2)
     
     # Plot fit times (left subplot)
     ax_fit.set_title("Training Time")
-    ax_fit.set_xlabel("observations (m)")
+    ax_fit.set_xlabel(x_label)
     ax_fit.set_ylabel("wall-clock time [s]")
     
     for backend, style in backend_styles.items():
@@ -49,11 +70,11 @@ def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comp
                 print(f"Warning: Skipping {backend} - insufficient data points ({backend_data.shape[0]} < 2)")
                 continue
                 
-            # Sort by n_obs for clean line plots
-            backend_data = backend_data.sort_values('n_obs')
+            # Sort by detected sweep variable for clean line plots
+            backend_data = backend_data.sort_values(sort_col)
             
             ax_fit.loglog(
-                backend_data['n_obs'], 
+                backend_data[x_col], 
                 backend_data['fit_time'],
                 marker=style['marker'],
                 color=style['color'],
@@ -73,7 +94,7 @@ def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comp
     
     # Plot predict times (right subplot)
     ax_pred.set_title("Prediction Time")
-    ax_pred.set_xlabel("observations (m)")
+    ax_pred.set_xlabel(x_label)
     ax_pred.set_ylabel("wall-clock time [s]")
     
     for backend, style in backend_styles.items():
@@ -84,10 +105,10 @@ def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comp
                 print(f"Warning: Skipping {backend} - insufficient data points ({backend_data.shape[0]} < 2)")
                 continue
                 
-            backend_data = backend_data.sort_values('n_obs')
+            backend_data = backend_data.sort_values(sort_col)
             
             ax_pred.loglog(
-                backend_data['n_obs'], 
+                backend_data[x_col], 
                 backend_data['predict_time'],
                 marker=style['marker'],
                 color=style['color'], 
@@ -262,6 +283,16 @@ def main():
     except Exception as e:
         print(f"Error loading data from {args.csv_file}: {e}")
         return 1
+    
+    # Sanity guard: Fail fast if wrong CSV is used
+    n_obs_unique = df['n_obs'].nunique()
+    grid_size_unique = df['grid_size'].nunique()
+    
+    if n_obs_unique <= 1 and grid_size_unique <= 1:
+        raise ValueError(f"Dataset has insufficient variation for timing plots: "
+                        f"n_obs has {n_obs_unique} unique values, "
+                        f"grid_size has {grid_size_unique} unique values. "
+                        f"At least one dimension must have multiple values for meaningful timing analysis.")
         
     print(f"Loaded {len(df)} timing records from {args.csv_file}")
     print(f"Backends: {sorted(df['backend'].unique())}")
@@ -275,18 +306,27 @@ def main():
     
     show_legend = not args.no_legend
     
-    # Observation scaling plot (fit + predict vs n_obs)
-    obs_plot_path = output_dir / "timing_vs_observations.pdf"
-    plot_timing_curves(df, str(obs_plot_path), 
-                      colorblind_friendly=args.colorblind_friendly,
-                      show_legend=show_legend)
-    
-    # Dimension scaling plot (fit + predict vs grid_size)
-    dim_plot_path = output_dir / "timing_vs_dimensions.pdf"
-    plot_dimension_scaling(df, str(dim_plot_path), 
-                          fixed_n_obs=args.fixed_n_obs,
+    # Only generate plots that make sense for the data
+    if n_obs_unique > 1:
+        # Observation scaling plot (fit + predict vs n_obs) 
+        obs_plot_path = output_dir / "timing_vs_observations.pdf"
+        plot_timing_curves(df, str(obs_plot_path), 
                           colorblind_friendly=args.colorblind_friendly,
                           show_legend=show_legend)
+        print(f"Generated observation scaling plot: {obs_plot_path}")
+    else:
+        print(f"Skipping observation scaling plot - only {n_obs_unique} unique n_obs value(s)")
+    
+    if grid_size_unique > 1:
+        # Dimension scaling plot (fit + predict vs grid_size)
+        dim_plot_path = output_dir / "timing_vs_dimensions.pdf"
+        plot_dimension_scaling(df, str(dim_plot_path), 
+                              fixed_n_obs=args.fixed_n_obs,
+                              colorblind_friendly=args.colorblind_friendly,
+                              show_legend=show_legend)
+        print(f"Generated dimension scaling plot: {dim_plot_path}")
+    else:
+        print(f"Skipping dimension scaling plot - only {grid_size_unique} unique grid_size value(s)")
     
     if args.show:
         plt.show()

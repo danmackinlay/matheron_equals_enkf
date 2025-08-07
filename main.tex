@@ -459,11 +459,16 @@ Figure~\ref{fig:timing-curves} shows separate \textbf{training} and \textbf{pred
 \end{figure}
 
 \begin{figure}[t]
-  \floatconts
-    {fig:timing-curves} % label
-    {\caption{Timing comparison showing fit (solid) vs predict (dashed) times. Left: Scaling vs. number of observations ($m$). Right: Scaling vs. state dimension ($d$). GP prediction scales quadratically while EnKF/LETKF prediction remains effectively flat, demonstrating the computational advantages of ensemble methods.}} % caption
-    {\centering\includegraphics[width=\linewidth]{timing_vs_observations.pdf}}
+  \floatconts {fig:timing-curves}%
+    {\caption{Fit (solid) vs.\ predict (dashed) wall times.
+      Top: scaling with observations \(m\).
+      Bottom: scaling with state dimension \(d\).}}%
+  {%
+    \includegraphics[width=\linewidth]{timing_vs_observations.pdf}\par\vspace{1ex}
+    \includegraphics[width=\linewidth]{timing_vs_dimensions.pdf}%
+  }
 \end{figure}
+
 
 \paragraph{Take-away.}
 The results confirm that a standard EnKF is a computationally efficient method for path-wise GP sampling. More importantly, the equivalence acts as a bridge to a rich ecosystem of data assimilation techniques. The LETKF demonstrates this powerfully: by simply changing one line of code to invoke a localized filter, we gain access to a highly scalable inference method that parallels sparse or domain-decomposition approaches in the GP literature. This opens the door for the GP community to leverage decades of mature, practical DA engineering ``for free.''

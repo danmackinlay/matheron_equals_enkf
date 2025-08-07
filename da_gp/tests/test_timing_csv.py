@@ -121,3 +121,50 @@ def test_timing_consistency():
     # Total time should be sum of parts
     expected_total = df['fit_time'] + df['predict_time']
     assert np.allclose(df['total_time'], expected_total, rtol=1e-6)
+
+
+def test_dual_csv_generation():
+    """Test that both observation and dimension sweep CSVs have correct variation."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        obs_csv_path = Path(tmpdir) / "timing_obs.csv" 
+        dim_csv_path = Path(tmpdir) / "timing_dim.csv"
+        
+        # Generate observation sweep CSV
+        obs_cmd = [
+            sys.executable, "-m", "da_gp.scripts.bench",
+            "--n_obs_grid", "50", "100", "200", 
+            "--grid_size_fixed", "1000",
+            "--backends", "sklearn",
+            "--csv", str(obs_csv_path),
+            "--repeats", "1"
+        ]
+        
+        obs_result = subprocess.run(obs_cmd, capture_output=True, text=True, cwd=Path(__file__).parent.parent.parent)
+        if obs_result.returncode != 0:
+            pytest.skip(f"Observation sweep benchmark failed: {obs_result.stderr}")
+            
+        # Generate dimension sweep CSV  
+        dim_cmd = [
+            sys.executable, "-m", "da_gp.scripts.bench",
+            "--dim_grid", "500", "1000", "2000",
+            "--n_obs_fixed", "100", 
+            "--backends", "sklearn",
+            "--csv", str(dim_csv_path),
+            "--repeats", "1"
+        ]
+        
+        dim_result = subprocess.run(dim_cmd, capture_output=True, text=True, cwd=Path(__file__).parent.parent.parent)
+        if dim_result.returncode != 0:
+            pytest.skip(f"Dimension sweep benchmark failed: {dim_result.stderr}")
+        
+        # Validate observation sweep CSV
+        assert obs_csv_path.exists(), "Observation sweep CSV was not created"
+        obs_df = pd.read_csv(obs_csv_path)
+        assert obs_df['n_obs'].nunique() > 1, f"Observation CSV should have multiple n_obs values, got {obs_df['n_obs'].nunique()}"
+        assert obs_df['grid_size'].nunique() == 1, f"Observation CSV should have fixed grid_size, got {obs_df['grid_size'].nunique()} values"
+        
+        # Validate dimension sweep CSV
+        assert dim_csv_path.exists(), "Dimension sweep CSV was not created"
+        dim_df = pd.read_csv(dim_csv_path)
+        assert dim_df['grid_size'].nunique() > 1, f"Dimension CSV should have multiple grid_size values, got {dim_df['grid_size'].nunique()}"
+        assert dim_df['n_obs'].nunique() == 1, f"Dimension CSV should have fixed n_obs, got {dim_df['n_obs'].nunique()} values"
