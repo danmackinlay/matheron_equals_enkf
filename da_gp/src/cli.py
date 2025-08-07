@@ -29,7 +29,7 @@ except ImportError:
     MPI_AVAILABLE = False
 
 
-def _load_backend(backend: str, n_obs: int, n_ens: int = 40) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def _load_backend(backend: str, n_obs: int, grid_size: int = 2000, n_ens: int = 40) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Load backend and return posterior statistics for plotting.
     
     Returns:
@@ -38,24 +38,27 @@ def _load_backend(backend: str, n_obs: int, n_ens: int = 40) -> Tuple[np.ndarray
         upper: Upper confidence bound (mean + 2*std)
         x: Grid coordinates
     """
-    from .gp_common import X_grid
+    from .gp_common import Problem
+    
+    problem = Problem(grid_size=grid_size, n_obs=n_obs, noise_std=0.1, 
+                      rng=np.random.default_rng(42))
     
     if backend == "sklearn":
         from . import gp_sklearn as module
-        result = module.run(n_obs=n_obs, n_ens=n_ens)
+        result = module.run(problem, n_ens=n_ens)
         mean = result['posterior_mean']
         std = result.get('posterior_std', np.ones_like(mean) * 0.1)
         
     elif backend == "dapper_enkf":
         from . import gp_dapper as module
-        result = module.run_enkf(n_ens=n_ens, n_obs=n_obs)
+        result = module.run_enkf(problem, n_ens=n_ens)
         mean = result['posterior_mean']
         ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(mean))))
         std = np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
         
     elif backend == "dapper_letkf":
         from . import gp_dapper as module
-        result = module.run_letkf(n_ens=n_ens, n_obs=n_obs)
+        result = module.run_letkf(problem, n_ens=n_ens)
         mean = result['posterior_mean']
         ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(mean))))
         std = np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
@@ -63,7 +66,7 @@ def _load_backend(backend: str, n_obs: int, n_ens: int = 40) -> Tuple[np.ndarray
     else:
         raise ValueError(f"Unknown backend: {backend}")
     
-    x = X_grid.flatten()
+    x = np.arange(len(mean))  # Recreate grid coordinates on the fly
     lower = mean - 2 * std
     upper = mean + 2 * std
     
@@ -107,11 +110,8 @@ def main() -> None:
     
     args = parser.parse_args()
     
-    # Early resize: change grid size before any backend import
-    if args.grid_size is not None:
-        from . import gp_common as gpc
-        rng = np.random.default_rng()  # Create RNG for grid resizing
-        gpc.set_grid_size(args.grid_size, rng)
+    # Set default grid size if not provided
+    grid_size = args.grid_size if args.grid_size is not None else 2000
     
     # Check MPI rank for multi-process backends
     rank = 0
@@ -119,19 +119,24 @@ def main() -> None:
         comm = MPI.COMM_WORLD
         rank = comm.rank
     
-    # Import and run backend
+    # Import and run backend using Problem-based API
     start_time = time.perf_counter()
     
     try:
+        from .gp_common import Problem
+        
+        problem = Problem(grid_size=grid_size, n_obs=args.n_obs, noise_std=0.1, 
+                         rng=np.random.default_rng(42))
+        
         if args.backend == 'sklearn':
             from . import gp_sklearn as backend
-            result = backend.run(n_obs=args.n_obs, n_ens=args.n_ens)  # Will use default RNG internally
+            result = backend.run(problem, n_ens=args.n_ens)
         elif args.backend == 'dapper_enkf':
             from . import gp_dapper as backend
-            result = backend.run_enkf(n_ens=args.n_ens, n_obs=args.n_obs)  # Will use default seed internally
+            result = backend.run_enkf(problem, n_ens=args.n_ens)
         elif args.backend == 'dapper_letkf':
             from . import gp_dapper as backend
-            result = backend.run_letkf(n_ens=args.n_ens, n_obs=args.n_obs)  # Will use default seed internally
+            result = backend.run_letkf(problem, n_ens=args.n_ens)
         else:
             raise ValueError(f"Unknown backend: {args.backend}")
             
@@ -153,10 +158,10 @@ def main() -> None:
 
 def print_results(args: argparse.Namespace, result: Dict[str, Any], elapsed_time: float) -> None:
     """Print benchmark results."""
-    from .gp_common import GRID_SIZE
+    grid_size = args.grid_size if args.grid_size is not None else 2000
     
     print(f"Backend: {args.backend}")
-    print(f"Grid size: {GRID_SIZE:,}")
+    print(f"Grid size: {grid_size:,}")
     print(f"Observations: {args.n_obs:,}")
     print(f"Ensemble size: {args.n_ens}")
     print(f"Total elapsed time: {elapsed_time:.3f}s")
@@ -180,7 +185,7 @@ def print_results(args: argparse.Namespace, result: Dict[str, Any], elapsed_time
     fit_time = result.get('fit_time', elapsed_time)
     predict_time = result.get('predict_time', 0.0) 
     rmse = result.get('rmse', 0.0)
-    print(f"\nCSV: {args.backend},{args.n_obs},{GRID_SIZE},{fit_time:.6f},{predict_time:.6f},{elapsed_time:.6f},{rmse:.6f}")
+    print(f"\nCSV: {args.backend},{args.n_obs},{grid_size},{fit_time:.6f},{predict_time:.6f},{elapsed_time:.6f},{rmse:.6f}")
 
 
 if __name__ == '__main__':

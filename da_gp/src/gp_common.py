@@ -198,3 +198,28 @@ def generate_experiment_data(problem: Problem) -> tuple[np.ndarray, np.ndarray, 
     return truth, mask, obs
 
 
+def make_dataset(grid_size: int = 2000, n_obs: int = 100, noise_std: float = 0.1, seed: int = None) -> tuple[Problem, np.ndarray, np.ndarray, np.ndarray]:
+    """Convenience factory for creating a complete dataset.
+    
+    This is a shorthand for creating a Problem and generating experimental data,
+    useful for notebooks, interactive sessions, and simple test cases.
+    
+    Args:
+        grid_size: State dimension (default: 2000)
+        n_obs: Number of observations (default: 100)
+        noise_std: Observation noise standard deviation (default: 0.1)
+        seed: Random seed for reproducibility (default: None)
+        
+    Returns:
+        problem, truth, mask, observations
+        
+    Example:
+        >>> problem, truth, mask, obs = make_dataset(grid_size=1000, n_obs=50, seed=42)
+        >>> result = run_sklearn(problem, truth=truth, mask=mask, obs=obs)
+    """
+    rng = np.random.default_rng(seed)
+    problem = Problem(grid_size=grid_size, n_obs=n_obs, noise_std=noise_std, rng=rng)
+    truth, mask, obs = generate_experiment_data(problem)
+    return problem, truth, mask, obs
+
+

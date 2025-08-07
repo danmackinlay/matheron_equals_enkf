@@ -24,19 +24,19 @@ from pathlib import Path
 
 # Import unified styling
 from da_gp.figstyle import setup_figure_style
-from da_gp.src.gp_common import X_grid, get_truth_and_mask, get_observations
+from da_gp.src.gp_common import Problem, generate_experiment_data
 
-def run_backend(backend: str, truth: np.ndarray, mask: np.ndarray, obs: np.ndarray, n_obs: int, n_draws: int = 200, rng: np.random.Generator = None):
+def run_backend(backend: str, problem: Problem, truth: np.ndarray, mask: np.ndarray, obs: np.ndarray, n_draws: int = 200):
     """Run a specific backend with given data."""
     if backend == "sklearn":
         from da_gp.src.gp_sklearn import run
-        return run(n_obs=n_obs, truth=truth, mask=mask, obs=obs, n_ens=n_draws, rng=rng)
+        return run(problem, truth=truth, mask=mask, obs=obs, n_ens=n_draws)
     elif backend == "dapper_enkf":
         from da_gp.src.gp_dapper import run_enkf
-        return run_enkf(n_ens=n_draws, n_obs=n_obs, truth=truth, mask=mask, obs=obs, seed=42)
+        return run_enkf(problem, n_ens=n_draws, truth=truth, mask=mask, obs=obs, seed=42)
     elif backend == "dapper_letkf":
         from da_gp.src.gp_dapper import run_letkf
-        return run_letkf(n_ens=n_draws, n_obs=n_obs, truth=truth, mask=mask, obs=obs, seed=42)
+        return run_letkf(problem, n_ens=n_draws, truth=truth, mask=mask, obs=obs, seed=42)
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
@@ -79,6 +79,12 @@ def main():
         action="store_true",
         help="Use color-blind friendly palette"
     )
+    parser.add_argument(
+        "--grid_size",
+        type=int,
+        default=2000,
+        help="Grid size (state dimension, default: 2000)"
+    )
 
     args = parser.parse_args()
 
@@ -106,22 +112,22 @@ def main():
     # Ensure output directory exists
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
 
-    # Generate consistent data for all backends
+    # Generate consistent data for all backends using Problem-based approach
     print(f"Generating data with {args.n_obs} observations...")
-    truth, mask = get_truth_and_mask(args.n_obs, rng=rng)
-    obs = get_observations(truth, mask, noise_std=0.1, rng=rng)
+    problem = Problem(grid_size=args.grid_size, n_obs=args.n_obs, noise_std=0.1, rng=rng)
+    truth, mask, obs = generate_experiment_data(problem)
 
     # Set up plotting
     # Setup unified styling
     backend_styles = setup_figure_style(colorblind_friendly=args.colorblind_friendly)
     plt.figure()
-    x = X_grid.flatten()
+    x = np.arange(problem.grid_size)  # Create local grid coordinates
 
     # Plot for each backend
     for backend in args.backends:
         try:
             print(f"Running {backend} backend...")
-            result = run_backend(backend, truth, mask, obs, args.n_obs, args.n_draws, rng=rng)
+            result = run_backend(backend, problem, truth, mask, obs, args.n_draws)
             samples = result["posterior_samples"]
             color = colors.get(backend, 'gray')
 
@@ -146,7 +152,7 @@ def main():
 
     # Plot observations
     plt.scatter(
-        X_grid[mask], obs,
+        x[mask], obs,
         marker='x',
         color=colors['obs'],
         s=40,

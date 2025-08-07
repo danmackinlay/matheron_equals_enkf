@@ -18,17 +18,13 @@
 
 import numpy as np
 import pytest
-from da_gp.src.gp_common import generate_truth, make_observations, make_obs_mask
+from da_gp.src.gp_common import Problem, generate_experiment_data, make_observations
 
 
 def test_observation_rmse():
     """Test that observations are reasonable perturbations of truth."""
-    rng = np.random.default_rng(42)
-    truth = generate_truth(rng)
-    mask = make_obs_mask(100, rng)
-    noise_std = 0.1
-    
-    obs = make_observations(truth, mask, noise_std, rng)
+    problem = Problem(grid_size=1000, n_obs=100, noise_std=0.1, rng=np.random.default_rng(42))
+    truth, mask, obs = generate_experiment_data(problem)
     
     # Observations should be close to truth values at observed locations
     truth_obs = truth[mask]
@@ -43,7 +39,8 @@ def test_sklearn_rmse_reasonable():
     """Test that sklearn GP produces reasonable RMSE."""
     from da_gp.src.gp_sklearn import run
     
-    result = run(n_obs=200)  # Use enough observations for good fit
+    problem = Problem(grid_size=1000, n_obs=200, noise_std=0.1, rng=np.random.default_rng(42))
+    result = run(problem)
     
     # RMSE should be reasonable (less than prior std)
     prior_std = 1.0  # From kernel amplitude
@@ -51,14 +48,16 @@ def test_sklearn_rmse_reasonable():
     assert result['rmse'] > 0.0
     
     # Check that we have proper outputs
-    assert result['posterior_mean'].shape == (2000,)
+    assert result['posterior_mean'].shape == (1000,)  # Updated for correct grid size
     assert np.isfinite(result['rmse'])
 
 
 def test_prior_spread():
     """Test that prior samples have expected spread."""
+    from da_gp.src.gp_common import draw_prior
+    
     rng = np.random.default_rng(42)
-    samples = [generate_truth(rng) for _ in range(50)]
+    samples = [draw_prior(1000, np.random.default_rng(i)) for i in range(50)]
     sample_array = np.array(samples)
     
     # Sample standard deviation should be close to kernel amplitude (1.0)
@@ -75,8 +74,10 @@ def test_sklearn_scaling(n_obs):
     from da_gp.src.gp_sklearn import run
     import time
     
+    problem = Problem(grid_size=1000, n_obs=n_obs, noise_std=0.1, rng=np.random.default_rng(42))
+    
     start_time = time.perf_counter()
-    result = run(n_obs=n_obs)
+    result = run(problem)
     elapsed = time.perf_counter() - start_time
     
     # Basic sanity checks
@@ -93,11 +94,12 @@ def test_rmse_decreases_with_observations():
     """Test that RMSE generally decreases with more observations."""
     from da_gp.src.gp_sklearn import run
     
-    # Use fixed random seed for consistency
-    np.random.seed(42)
+    # Use consistent problem specification for fair comparison
+    problem_few = Problem(grid_size=1000, n_obs=10, noise_std=0.1, rng=np.random.default_rng(42))
+    problem_many = Problem(grid_size=1000, n_obs=100, noise_std=0.1, rng=np.random.default_rng(42))
     
-    rmse_few = run(n_obs=10)['rmse']
-    rmse_many = run(n_obs=100)['rmse']
+    rmse_few = run(problem_few)['rmse']
+    rmse_many = run(problem_many)['rmse']
     
     # More observations should generally give better fit
     # (Though this may not always hold due to random sampling)

@@ -283,6 +283,10 @@ def main():
         n_obs_list = [args.n_obs_fixed]
         grid_size_list = args.dim_grid
     elif args.n_obs_grid and args.dim_grid:
+        # Both sweeps specified - validate early to avoid single-point collapse
+        if len(args.n_obs_grid) == 1 and len(args.dim_grid) == 1:
+            parser.error(f"When both --n_obs_grid and --dim_grid are specified, at least one must have multiple values. Got n_obs_grid={args.n_obs_grid}, dim_grid={args.dim_grid}")
+        
         # Both sweeps specified - this creates a cross-product
         n_obs_list = args.n_obs_grid + [args.n_obs_fixed]
         grid_size_list = [args.grid_size_fixed] + args.dim_grid
@@ -294,9 +298,9 @@ def main():
     n_obs_list = sorted(set(n_obs_list))
     grid_size_list = sorted(set(grid_size_list))
     
-    # Fail-fast assertion to guarantee multiple data points in sweeps
-    assert len(n_obs_list) > 1 or len(grid_size_list) > 1, \
-        f"Sweep collapsed to single point: n_obs={n_obs_list}, grid_size={grid_size_list}. Need multiple values in at least one dimension."
+    # Final validation: ensure we have multiple data points in at least one dimension
+    if len(n_obs_list) <= 1 and len(grid_size_list) <= 1:
+        raise ValueError(f"Sweep collapsed to single point: n_obs={n_obs_list}, grid_size={grid_size_list}. Need multiple values in at least one dimension.")
     
     print("Generating shared synthetic datasets...")
     shared_data = generate_shared_data(n_obs_list, grid_size_list)

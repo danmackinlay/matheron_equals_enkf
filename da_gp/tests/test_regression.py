@@ -22,22 +22,25 @@ import pytest
 
 def test_backends_match():
     """Test that different backends produce consistent results."""
-    from da_gp.src.cli import _load_backend
+    from da_gp.src.gp_common import Problem, generate_experiment_data
+    from da_gp.src.gp_sklearn import run as run_sklearn
+    from da_gp.src.gp_dapper import run_enkf
     
     # Test with moderate number of observations
-    n_obs = 300
+    problem = Problem(grid_size=1000, n_obs=300, noise_std=0.1, rng=np.random.default_rng(42))
+    truth, mask, obs = generate_experiment_data(problem)
     
     try:
-        mean_skl, *_ = _load_backend("sklearn", n_obs=n_obs)
-        mean_dap, *_ = _load_backend("dapper_enkf", n_obs=n_obs)
+        result_skl = run_sklearn(problem, truth=truth, mask=mask, obs=obs)
+        result_dap = run_enkf(problem, truth=truth, mask=mask, obs=obs)
         
         # RMSE between means should be reasonable (backends use different algorithms)
-        rmse = np.sqrt(np.mean((mean_skl - mean_dap) ** 2))
+        rmse = np.sqrt(np.mean((result_skl['posterior_mean'] - result_dap['posterior_mean']) ** 2))
         assert rmse < 3.0, f"Backend RMSE too large: {rmse:.6f}"  # Relaxed tolerance for different methods
         
         # Both should produce valid posterior means
-        assert np.all(np.isfinite(mean_skl)), "sklearn backend produced invalid results"
-        assert np.all(np.isfinite(mean_dap)), "dapper backend produced invalid results"
+        assert np.all(np.isfinite(result_skl['posterior_mean'])), "sklearn backend produced invalid results"
+        assert np.all(np.isfinite(result_dap['posterior_mean'])), "dapper backend produced invalid results"
         
     except ImportError:
         pytest.skip("DAPPER not available for comparison")
@@ -46,8 +49,10 @@ def test_backends_match():
 def test_backend_output_format():
     """Test that backends return required format."""
     from da_gp.src.gp_sklearn import run as run_sklearn
+    from da_gp.src.gp_common import Problem
     
-    result = run_sklearn(n_obs=100)
+    problem = Problem(grid_size=1000, n_obs=100, noise_std=0.1, rng=np.random.default_rng(42))
+    result = run_sklearn(problem)
     
     # Check required keys are present
     required_keys = ["posterior_mean", "posterior_samples", "obs", "mask"]
@@ -55,35 +60,42 @@ def test_backend_output_format():
         assert key in result, f"Missing required key: {key}"
     
     # Check shapes
-    assert result["posterior_mean"].shape == (2000,), "Wrong posterior_mean shape"
-    assert result["posterior_samples"].shape[1] == 2000, "Wrong posterior_samples shape"
+    assert result["posterior_mean"].shape == (1000,), "Wrong posterior_mean shape"
+    assert result["posterior_samples"].shape[1] == 1000, "Wrong posterior_samples shape"
     assert len(result["obs"]) == 100, "Wrong obs length"
     assert len(result["mask"]) == 100, "Wrong mask length"
 
 
 def test_truth_and_mask_consistency():
-    """Test that truth/mask generation is consistent with same function calls."""
-    from da_gp.src.gp_common import get_truth_and_mask
+    """Test that truth/mask generation is consistent with same problem specifications."""
+    from da_gp.src.gp_common import Problem, generate_experiment_data
     
-    # Test with consistent RNG seeds
-    rng1 = np.random.default_rng(42)
-    truth1, mask1 = get_truth_and_mask(100, rng1)
+    # Test with consistent problem specifications
+    problem1 = Problem(grid_size=1000, n_obs=100, noise_std=0.1, rng=np.random.default_rng(42))
+    truth1, mask1, obs1 = generate_experiment_data(problem1)
     
-    rng2 = np.random.default_rng(42)
-    truth2, mask2 = get_truth_and_mask(100, rng2)
+    problem2 = Problem(grid_size=1000, n_obs=100, noise_std=0.1, rng=np.random.default_rng(42))
+    truth2, mask2, obs2 = generate_experiment_data(problem2)
     
     assert np.allclose(truth1, truth2), "Truth generation not deterministic"
     assert np.array_equal(mask1, mask2), "Mask generation not deterministic"
+    assert np.allclose(obs1, obs2), "Observation generation not deterministic"
 
 
 def test_observations_generation():
-    """Test observation generation consistency."""
-    from da_gp.src.gp_common import get_truth_and_mask, get_observations
+    """Test observation generation with different noise realizations."""
+    from da_gp.src.gp_common import Problem, generate_experiment_data, make_observations
     
-    rng = np.random.default_rng(42)
-    truth, mask = get_truth_and_mask(50, rng)
-    obs1 = get_observations(truth, mask, noise_std=0.1, rng=np.random.default_rng(1))
-    obs2 = get_observations(truth, mask, noise_std=0.1, rng=np.random.default_rng(2))
+    # Generate consistent truth and mask
+    problem = Problem(grid_size=1000, n_obs=50, noise_std=0.1, rng=np.random.default_rng(42))
+    truth, mask, _ = generate_experiment_data(problem)
+    
+    # Generate observations with different noise
+    problem1 = Problem(grid_size=1000, n_obs=50, noise_std=0.1, rng=np.random.default_rng(1))
+    problem2 = Problem(grid_size=1000, n_obs=50, noise_std=0.1, rng=np.random.default_rng(2))
+    
+    obs1 = make_observations(truth, mask, problem1)
+    obs2 = make_observations(truth, mask, problem2)
     
     # Different noise realizations should be different
     assert not np.allclose(obs1, obs2), "Observations should have different noise"
