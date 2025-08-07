@@ -9,17 +9,17 @@ from pathlib import Path
 
 from da_gp.src.gp_common import X_grid, get_truth_and_mask, get_observations
 
-def run_backend(backend: str, truth: np.ndarray, mask: np.ndarray, obs: np.ndarray, n_obs: int, n_draws: int = 200):
+def run_backend(backend: str, truth: np.ndarray, mask: np.ndarray, obs: np.ndarray, n_obs: int, n_draws: int = 200, rng: np.random.Generator = None):
     """Run a specific backend with given data."""
     if backend == "sklearn":
         from da_gp.src.gp_sklearn import run
-        return run(n_obs=n_obs, truth=truth, mask=mask, obs=obs, n_ens=n_draws)
+        return run(n_obs=n_obs, truth=truth, mask=mask, obs=obs, n_ens=n_draws, rng=rng)
     elif backend == "dapper_enkf":
         from da_gp.src.gp_dapper import run_enkf
-        return run_enkf(n_ens=n_draws, n_obs=n_obs, truth=truth, mask=mask, obs=obs)
+        return run_enkf(n_ens=n_draws, n_obs=n_obs, truth=truth, mask=mask, obs=obs, seed=42)
     elif backend == "dapper_letkf":
         from da_gp.src.gp_dapper import run_letkf
-        return run_letkf(n_ens=n_draws, n_obs=n_obs, truth=truth, mask=mask, obs=obs)
+        return run_letkf(n_ens=n_draws, n_obs=n_obs, truth=truth, mask=mask, obs=obs, seed=42)
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
@@ -60,6 +60,9 @@ def main():
 
     args = parser.parse_args()
 
+    # Create the single, master RNG instance for this run
+    rng = np.random.default_rng(42)
+
     # --- FIX 1: Use an accessible color palette ---
     # Use 'viridis', a perceptually uniform and color-blind-friendly palette
     color_map = plt.colormaps['viridis']
@@ -83,8 +86,8 @@ def main():
 
     # Generate consistent data for all backends
     print(f"Generating data with {args.n_obs} observations...")
-    truth, mask = get_truth_and_mask(args.n_obs)
-    obs = get_observations(truth, mask, noise_std=0.1)
+    truth, mask = get_truth_and_mask(args.n_obs, rng=rng)
+    obs = get_observations(truth, mask, noise_std=0.1, rng=rng)
 
     # Set up plotting
     plt.figure(figsize=(12, 6))
@@ -94,7 +97,7 @@ def main():
     for backend in args.backends:
         try:
             print(f"Running {backend} backend...")
-            result = run_backend(backend, truth, mask, obs, args.n_obs, args.n_draws)
+            result = run_backend(backend, truth, mask, obs, args.n_obs, args.n_draws, rng=rng)
             samples = result["posterior_samples"]
             color = colors.get(backend, 'gray')
 

@@ -9,18 +9,18 @@ OBS_SITES = 5_000          # can CLI-override to 50_000+
 # RFF parameters
 RFF_DIM = 1024             # number of random features (tunable)
 
-rng = np.random.default_rng(42)
+# RNG will be passed to functions - no global RNG
 X_grid = np.arange(GRID_SIZE).reshape(-1, 1)
 kernel = 1.0 * RBF(length_scale=30.0)
 
-# Pre-compute RFF parameters for efficiency
 # Extract length scale from the RBF kernel (kernel is 1.0 * RBF)
 _length_scale = kernel.k2.length_scale if hasattr(kernel, 'k2') else 10.0
-_rff_W = rng.normal(0, 1/_length_scale, size=(RFF_DIM, 1))  # (m, 1)
-_rff_b = rng.uniform(0, 2*np.pi, size=RFF_DIM)              # (m,)
+# RFF parameters will be computed on demand with passed RNG
+_rff_W = None
+_rff_b = None
 
 
-def set_grid_size(new_d: int) -> None:
+def set_grid_size(new_d: int, rng: np.random.Generator) -> None:
     """
     Dynamically change the grid size and update dependent globals.
 
@@ -31,6 +31,7 @@ def set_grid_size(new_d: int) -> None:
     GRID_SIZE = new_d
     X_grid = np.arange(GRID_SIZE).reshape(-1, 1)
     # Re-draw RFF parameters for new grid size
+    global _rff_W, _rff_b
     _rff_W = rng.normal(0, 1/_length_scale, size=(RFF_DIM, 1))
     _rff_b = rng.uniform(0, 2*np.pi, size=RFF_DIM)
 
@@ -40,7 +41,7 @@ def _phi(x: np.ndarray) -> np.ndarray:
     return np.sqrt(2/RFF_DIM) * np.cos(x @ _rff_W.T + _rff_b)
 
 
-def draw_prior_fft() -> np.ndarray:
+def draw_prior_fft(rng: np.random.Generator) -> np.ndarray:
     """
     Draw an exact sample from the GP prior using the FFT-based
     circulant embedding method. This is highly efficient for stationary 
@@ -92,7 +93,7 @@ def draw_prior_fft() -> np.ndarray:
     return sample[:GRID_SIZE]
 
 
-def draw_prior_rff() -> np.ndarray:
+def draw_prior_rff(rng: np.random.Generator) -> np.ndarray:
     """
     Draw a sample from the GP prior using Random Fourier Features.
     This provides O(dm) complexity vs O(d^3) for exact methods.
@@ -100,11 +101,17 @@ def draw_prior_rff() -> np.ndarray:
     Returns:
         np.ndarray: A sample from the GP prior of shape (GRID_SIZE,).
     """
+    # Initialize RFF parameters if not done yet
+    global _rff_W, _rff_b
+    if _rff_W is None or _rff_b is None:
+        _rff_W = rng.normal(0, 1/_length_scale, size=(RFF_DIM, 1))
+        _rff_b = rng.uniform(0, 2*np.pi, size=RFF_DIM)
+    
     z = rng.standard_normal(RFF_DIM)  # a_j coefficients
     return _phi(X_grid) @ z           # O(d m) matrix-vector product
 
 
-def draw_prior(use_rff: bool = False) -> np.ndarray:
+def draw_prior(rng: np.random.Generator, use_rff: bool = False) -> np.ndarray:
     """
     Draw a sample from the GP prior using FFT (default) or RFF.
 
@@ -115,35 +122,35 @@ def draw_prior(use_rff: bool = False) -> np.ndarray:
         np.ndarray: A sample from the GP prior of shape (GRID_SIZE,).
     """
     if use_rff:
-        return draw_prior_rff()
+        return draw_prior_rff(rng)
     # default: use FFT method (same as original behavior)
-    return draw_prior_fft()
+    return draw_prior_fft(rng)
 
 
-def make_obs_mask(n_obs: int = OBS_SITES) -> np.ndarray:
+def make_obs_mask(n_obs: int, rng: np.random.Generator) -> np.ndarray:
     """Create observation mask by randomly selecting grid points."""
     return rng.choice(GRID_SIZE, size=n_obs, replace=True)
 
 
-def generate_truth() -> np.ndarray:
+def generate_truth(rng: np.random.Generator) -> np.ndarray:
     """Generate synthetic truth for validation."""
-    return draw_prior()
+    return draw_prior(rng)
 
 
-def make_observations(truth: np.ndarray, mask: np.ndarray, noise_std: float = 0.1) -> np.ndarray:
+def make_observations(truth: np.ndarray, mask: np.ndarray, noise_std: float, rng: np.random.Generator) -> np.ndarray:
     """Generate noisy observations from truth at masked locations."""
     obs = truth[mask]
     noise = rng.normal(0, noise_std, size=len(obs))
     return obs + noise
 
 
-def get_truth_and_mask(n_obs: int) -> tuple[np.ndarray, np.ndarray]:
+def get_truth_and_mask(n_obs: int, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
     """Generate consistent truth and observation mask for all backends."""
-    truth = generate_truth()
-    mask = make_obs_mask(n_obs)
+    truth = generate_truth(rng)
+    mask = make_obs_mask(n_obs, rng)
     return truth, mask
 
 
-def get_observations(truth: np.ndarray, mask: np.ndarray, noise_std: float = 0.1) -> np.ndarray:
+def get_observations(truth: np.ndarray, mask: np.ndarray, noise_std: float, rng: np.random.Generator) -> np.ndarray:
     """Generate observations from truth and mask."""
-    return make_observations(truth, mask, noise_std)
+    return make_observations(truth, mask, noise_std, rng)

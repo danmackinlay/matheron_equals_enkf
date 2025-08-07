@@ -11,7 +11,8 @@ from da_gp.src.gp_common import GRID_SIZE, draw_prior, make_obs_mask, set_grid_s
 
 def test_draw_prior_shape():
     """Test that prior samples have correct shape."""
-    prior = draw_prior()
+    rng = np.random.default_rng(42)
+    prior = draw_prior(rng)
     assert prior.shape == (GRID_SIZE,)
     assert isinstance(prior, np.ndarray)
 
@@ -25,15 +26,16 @@ def test_draw_prior_shape_parametrized(grid_size):
     
     try:
         # Set new grid size
-        set_grid_size(grid_size)
+        rng = np.random.default_rng(42)
+        set_grid_size(grid_size, rng)
         
         # Test FFT method
-        prior_fft = draw_prior(use_rff=False)
+        prior_fft = draw_prior(rng, use_rff=False)
         assert prior_fft.shape == (grid_size,)
         assert isinstance(prior_fft, np.ndarray)
         
         # Test RFF method
-        prior_rff = draw_prior(use_rff=True)
+        prior_rff = draw_prior(rng, use_rff=True)
         assert prior_rff.shape == (grid_size,)
         assert isinstance(prior_rff, np.ndarray)
         
@@ -43,13 +45,15 @@ def test_draw_prior_shape_parametrized(grid_size):
         
     finally:
         # Restore original grid size
-        set_grid_size(original_grid_size)
+        rng_restore = np.random.default_rng(42)
+        set_grid_size(original_grid_size, rng_restore)
 
 
 def test_obs_mask_shape():
     """Test that observation masks have correct shape."""
+    rng = np.random.default_rng(42)
     n_obs = 100
-    mask = make_obs_mask(n_obs)
+    mask = make_obs_mask(n_obs, rng)
     assert mask.shape == (n_obs,)
     assert np.all(mask >= 0)
     assert np.all(mask < GRID_SIZE)
@@ -80,7 +84,8 @@ def test_dapper_backend_shapes():
     n_ens = 10
     
     # Test ensemble initialization
-    ensemble = init_state(n_ens)
+    rng = np.random.default_rng(42)
+    ensemble = init_state(n_ens, rng)
     assert ensemble.shape == (n_ens, GRID_SIZE)
     
     # Test full run (may fail without proper DAPPER setup)

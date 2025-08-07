@@ -3,12 +3,13 @@
 import time
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from .gp_common import X_grid, kernel, make_obs_mask, generate_truth, make_observations
+from .gp_common import X_grid, kernel
 
 
-def init_state() -> np.ndarray:
+def init_state(rng: np.random.Generator) -> np.ndarray:
     """Initialize GP state (not used, included for API consistency)."""
-    return generate_truth()
+    from .gp_common import generate_truth
+    return generate_truth(rng)
 
 
 def obs_op(state: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -16,13 +17,18 @@ def obs_op(state: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return state[mask]
 
 
-def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, **kwargs) -> dict:
+def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, rng: np.random.Generator = None, **kwargs) -> dict:
     """Run scikit-learn Gaussian Process regression."""
+    # Handle default case
+    if rng is None:
+        rng = np.random.default_rng()
+        
     # Use provided data or generate synthetic experiment
     if truth is None or mask is None or obs is None:
-        mask = make_obs_mask(n_obs)
-        truth = generate_truth()
-        obs = make_observations(truth, mask, noise_std=0.1)
+        from .gp_common import make_obs_mask, generate_truth, make_observations
+        mask = make_obs_mask(n_obs, rng)
+        truth = generate_truth(rng)
+        obs = make_observations(truth, mask, 0.1, rng)
     
     # Create GP with fixed kernel (no optimization)
     gp = GaussianProcessRegressor(kernel=kernel, optimizer=None, alpha=0.01)
@@ -38,12 +44,10 @@ def run(n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, o
     posterior_mean, posterior_std = gp.predict(X_grid, return_std=True)
     predict_time = time.perf_counter() - start_time
     
-    # Sample from posterior (approximate)
+    # Sample from posterior (approximate) using provided RNG
     n_samples = kwargs.get('n_ens', 40)
-    posterior_samples = np.array([
-        posterior_mean + posterior_std * np.random.standard_normal(len(posterior_mean))
-        for _ in range(n_samples)
-    ])
+    posterior_samples = rng.standard_normal(size=(n_samples, len(posterior_mean)))
+    posterior_samples = posterior_mean + posterior_samples * posterior_std
     
     rmse = np.sqrt(np.mean((posterior_mean - truth)**2))
     

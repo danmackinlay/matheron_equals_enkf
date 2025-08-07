@@ -7,11 +7,12 @@ from da_gp.src.gp_common import generate_truth, make_observations, make_obs_mask
 
 def test_observation_rmse():
     """Test that observations are reasonable perturbations of truth."""
-    truth = generate_truth()
-    mask = make_obs_mask(100)
+    rng = np.random.default_rng(42)
+    truth = generate_truth(rng)
+    mask = make_obs_mask(100, rng)
     noise_std = 0.1
     
-    obs = make_observations(truth, mask, noise_std)
+    obs = make_observations(truth, mask, noise_std, rng)
     
     # Observations should be close to truth values at observed locations
     truth_obs = truth[mask]
@@ -40,7 +41,8 @@ def test_sklearn_rmse_reasonable():
 
 def test_prior_spread():
     """Test that prior samples have expected spread."""
-    samples = [generate_truth() for _ in range(50)]
+    rng = np.random.default_rng(42)
+    samples = [generate_truth(rng) for _ in range(50)]
     sample_array = np.array(samples)
     
     # Sample standard deviation should be close to kernel amplitude (1.0)

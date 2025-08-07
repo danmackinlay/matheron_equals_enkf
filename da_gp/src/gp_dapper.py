@@ -1,26 +1,35 @@
 # FILE: da-gp/src/gp_dapper.py
 
 import numpy as np
-from .gp_common import GRID_SIZE, draw_prior, make_obs_mask, generate_truth, make_observations
+from .gp_common import GRID_SIZE
 
 from dapper import da_methods, mods
 from dapper.tools.randvars import RV
+from dapper.tools.seeding import set_seed
 
 
-def init_state(n_ens: int) -> np.ndarray:
+def init_state(n_ens: int, rng: np.random.Generator) -> np.ndarray:
     """Initialize a zero-mean ensemble with the correct spatial covariance."""
-    return np.stack([draw_prior() for _ in range(n_ens)])
+    from .gp_common import draw_prior
+    return np.stack([draw_prior(rng) for _ in range(n_ens)])
 
 
-def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, method: str = 'EnKF') -> dict:
+def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np.ndarray = None, obs: np.ndarray = None, method: str = 'EnKF', seed: int = None) -> dict:
     """Internal, generalized DAPPER runner."""
+    if seed is not None:
+        set_seed(seed)
+        rng = np.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng()
+        
     if truth is None or mask is None or obs is None:
-        mask = make_obs_mask(n_obs)
-        truth = generate_truth()
-        obs = make_observations(truth, mask, noise_std=0.1)
+        from .gp_common import make_obs_mask, generate_truth, make_observations
+        mask = make_obs_mask(n_obs, rng)
+        truth = generate_truth(rng)
+        obs = make_observations(truth, mask, 0.1, rng)
 
     # Prior: Zero-mean ensemble with kernel-derived covariance
-    initial_ensemble = init_state(n_ens)
+    initial_ensemble = init_state(n_ens, rng)
     X0 = RV(M=GRID_SIZE, func=lambda N: initial_ensemble)
 
     # HMM components: Use the minimal working timeline
@@ -58,8 +67,8 @@ def _run(n_ens: int = 40, n_obs: int = 5_000, truth: np.ndarray = None, mask: np
     if hasattr(da_method, 'E'):
         posterior_ensemble = da_method.E
     else:
-        # Reconstruct ensemble by sampling from posterior statistics
-        posterior_ensemble = np.random.multivariate_normal(
+        # Reconstruct ensemble by sampling from posterior statistics using seeded RNG
+        posterior_ensemble = rng.multivariate_normal(
             posterior_mean, 
             np.eye(len(posterior_mean)) * da_method.stats.spread.a[0].mean()**2,
             size=n_ens

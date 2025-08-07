@@ -94,7 +94,8 @@ def main() -> None:
     # Early resize: change grid size before any backend import
     if args.grid_size is not None:
         from . import gp_common as gpc
-        gpc.set_grid_size(args.grid_size)
+        rng = np.random.default_rng()  # Create RNG for grid resizing
+        gpc.set_grid_size(args.grid_size, rng)
     
     # Check MPI rank for multi-process backends
     rank = 0
@@ -108,13 +109,13 @@ def main() -> None:
     try:
         if args.backend == 'sklearn':
             from . import gp_sklearn as backend
-            result = backend.run(n_obs=args.n_obs, n_ens=args.n_ens)
+            result = backend.run(n_obs=args.n_obs, n_ens=args.n_ens)  # Will use default RNG internally
         elif args.backend == 'dapper_enkf':
             from . import gp_dapper as backend
-            result = backend.run_enkf(n_ens=args.n_ens, n_obs=args.n_obs)
+            result = backend.run_enkf(n_ens=args.n_ens, n_obs=args.n_obs)  # Will use default seed internally
         elif args.backend == 'dapper_letkf':
             from . import gp_dapper as backend
-            result = backend.run_letkf(n_ens=args.n_ens, n_obs=args.n_obs)
+            result = backend.run_letkf(n_ens=args.n_ens, n_obs=args.n_obs)  # Will use default seed internally
         else:
             raise ValueError(f"Unknown backend: {args.backend}")
             
