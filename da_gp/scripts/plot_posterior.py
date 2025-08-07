@@ -136,7 +136,7 @@ def main():
             plt.plot(x, samples.T, lw=0.5, color=color, alpha=dynamic_alpha, zorder=10)
 
             # Add a single representative line for the legend
-            plt.plot([], [], lw=2, color=color, label=f"{backend.upper()} posterior samples")
+            plt.plot([], [], lw=2, color=color, label=f"{backend.upper()}")
 
             print(f"  {backend}: RMSE = {result.get('rmse', 0.0):.6f}")
 
