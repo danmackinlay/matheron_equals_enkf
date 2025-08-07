@@ -442,12 +442,14 @@ We test grid sizes $d\in\{200,400,600,800\}$.
     \item \textbf{LETKF:} The Local Ensemble Transform Kalman Filter \cite{Hunt2007Efficient,Bocquet2020Online}, also implemented in DAPPER. This method introduces localization, where each state variable is updated using only a subset of nearby observations. This is a common technique in data assimilation for improving performance in high-dimensional systems.
 \end{itemize}
 
+We report \textbf{median fit and predict times} obtained with our in-process timer over multiple runs to ensure statistical robustness.
+
 \paragraph{Accuracy.}
 Figure~\ref{fig:posterior-samples} shows posterior draws from all three methods.
 As predicted by the theory, the means of the standard GP and the EnKF are numerically identical (RMSE $<10^{-13}$). The LETKF, being a localized approximation, produces a slightly different posterior mean but remains an excellent fit to the true field. This highlights the trade-off between exactness and the assumptions made for computational gain.
 
 \paragraph{Speed.}
-\figureref{fig:perf-scaling} shows the computational scaling of the three methods. On these toy problems, learn dominates, but we expect its The standard GP's cubic scaling with observations makes it the slowest. The EnKF is significantly faster, showcasing the benefit of the ensemble approach. The LETKF is faster still, especially as the state dimension grows, because localization breaks the global problem into many smaller, independent calculations. This demonstrates the profound efficiency gains possible by adopting mature DA techniques.
+Figure~\ref{fig:timing-curves} shows separate \textbf{training} and \textbf{prediction} times. Training with \texttt{GaussianProcessRegressor} scales cubically in $m$; prediction scales quadratically, but still rises steeply for large $m$. In contrast, EnKF and LETKF training scale linearly in ensemble size and prediction is effectively $O(1)$ for fixed ensemble, yielding two nearly flat curves. This demonstrates the profound efficiency gains possible by adopting mature DA techniques.
 
 \begin{figure}
   \centering
@@ -458,9 +460,9 @@ As predicted by the theory, the means of the standard GP and the EnKF are numeri
 
 \begin{figure}[t]
   \floatconts
-    {fig:perf-scaling} % label
-    {\caption{Wall-clock time comparison. Left: Scaling vs. number of observations ($m$). Right: Scaling vs. state dimension ($d$). The localized LETKF demonstrates superior scalability in both regimes.}} % caption
-    {\centering\includegraphics[width=\linewidth]{perf_scaling.pdf}}
+    {fig:timing-curves} % label
+    {\caption{Timing comparison showing fit (solid) vs predict (dashed) times. Left: Scaling vs. number of observations ($m$). Right: Scaling vs. state dimension ($d$). GP prediction scales quadratically while EnKF/LETKF prediction remains effectively flat, demonstrating the computational advantages of ensemble methods.}} % caption
+    {\centering\includegraphics[width=\linewidth]{timing_vs_observations.pdf}}
 \end{figure}
 
 \paragraph{Take-away.}
