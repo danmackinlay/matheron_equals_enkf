@@ -27,18 +27,11 @@ The project is organized to separate the Python package, scripts, and publicatio
 **IMPORTANT**: All commands should be run from the root directory of this repository.
 
 ```bash
-# 1. Create the virtual environment
+# 1. Create virtual environment and install dependencies
 uv venv
+uv sync
 
-# 2. Compile dependencies into a lock file
-# This reads pyproject.toml, resolves all dependencies (including extras),
-# and writes the exact versions to requirements.lock.
-uv pip compile pyproject.toml --extra dev --extra dapper -o requirements.lock
-
-# 3. Sync the environment with the lock file
-uv pip sync requirements.lock
-
-# 4. Run commands using `uv run`
+# 2. Run commands using `uv run`
 uv run pytest da_gp/tests/
 ```
 

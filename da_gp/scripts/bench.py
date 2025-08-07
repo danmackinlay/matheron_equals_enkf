@@ -86,7 +86,7 @@ def main():
         "--backends",
         nargs="+",
         default=DEFAULT_BACKENDS,
-        choices=["sklearn", "dapper", "pdaf"],
+        choices=["sklearn", "dapper"],
         help="Backends to test (default: sklearn dapper)"
     )
     

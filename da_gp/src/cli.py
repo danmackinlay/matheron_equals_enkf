@@ -37,13 +37,6 @@ def _load_backend(backend: str, n_obs: int, n_ens: int = 40) -> Tuple[np.ndarray
         ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(mean))))
         std = np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
         
-    elif backend == "pdaf":
-        from . import gp_pdaf as module
-        result = module.run(n_ens=n_ens, n_obs=n_obs)
-        mean = result['posterior_mean']
-        ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(mean))))
-        std = np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
-        
     else:
         raise ValueError(f"Unknown backend: {backend}")
     
@@ -61,7 +54,7 @@ def main() -> None:
     )
     parser.add_argument(
         '--backend', 
-        choices=['dapper', 'pdaf', 'sklearn'],
+        choices=['dapper', 'sklearn'],
         required=True,
         help="Backend to use for the experiment"
     )
@@ -109,9 +102,6 @@ def main() -> None:
         if args.backend == 'dapper':
             from . import gp_dapper as backend
             result = backend.run(n_ens=args.n_ens, n_obs=args.n_obs)
-        elif args.backend == 'pdaf':
-            from . import gp_pdaf as backend
-            result = backend.run(n_ens=args.n_ens, n_obs=args.n_obs)
         elif args.backend == 'sklearn':
             from . import gp_sklearn as backend
             result = backend.run(n_obs=args.n_obs, n_ens=args.n_ens)
@@ -121,8 +111,6 @@ def main() -> None:
     except ImportError as e:
         if rank == 0:
             print(f"Error: {e}", file=sys.stderr)
-            if args.backend == 'pdaf':
-                print("Install the pdaf extra with: uv pip install -e '.[pdaf]'", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
         if rank == 0:

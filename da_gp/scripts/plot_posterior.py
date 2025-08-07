@@ -17,9 +17,6 @@ def run_backend(backend: str, truth: np.ndarray, mask: np.ndarray, obs: np.ndarr
     elif backend == "dapper":
         from da_gp.src.gp_dapper import run
         return run(n_ens=n_draws, n_obs=n_obs, truth=truth, mask=mask, obs=obs)
-    elif backend == "pdaf":
-        from da_gp.src.gp_pdaf import run
-        return run(n_ens=n_draws, n_obs=n_obs, truth_in=truth, mask_in=mask, obs_in=obs)
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
@@ -31,7 +28,7 @@ def main():
         "--backends",
         nargs="+",
         default=["sklearn", "dapper"],
-        choices=["sklearn", "dapper", "pdaf"],
+        choices=["sklearn", "dapper"],
         help="Backends to compare"
     )
     parser.add_argument(

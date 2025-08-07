@@ -7,14 +7,6 @@ from da_gp.src.gp_common import GRID_SIZE, draw_prior, make_obs_mask, set_grid_s
 
 
 
-def _pdaf_available() -> bool:
-    """Check if pyPDAF is available."""
-    try:
-        import pypdaf
-        from mpi4py import MPI
-        return True
-    except ImportError:
-        return False
 
 
 def test_draw_prior_shape():
@@ -101,17 +93,3 @@ def test_dapper_backend_shapes():
         pytest.skip("DAPPER runtime configuration required")
 
 
-@pytest.mark.skipif(
-    not _pdaf_available(),
-    reason="pyPDAF not available"
-)  
-def test_pdaf_backend_shapes():
-    """Test pyPDAF backend shapes (basic import test)."""
-    from da_gp.src.gp_pdaf import init_state_ens
-    
-    # Test ensemble member initialization
-    state = init_state_ens()
-    assert state.shape == (GRID_SIZE,)
-    
-    # Full run test would require MPI setup
-    pytest.skip("pyPDAF runtime requires MPI configuration")

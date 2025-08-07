@@ -26,7 +26,7 @@ def plot_ax(ax, df, x_col, fixed_col, backends, colors): # Now accepts colors di
         return
 
     # --- FIX 1: Use the consistent color map passed from main ---
-    markers = {'sklearn': 'o', 'dapper': 's', 'pdaf': '^'}
+    markers = {'sklearn': 'o', 'dapper': 's'}
 
     for backend in backends:
         backend_data = df_filtered[df_filtered['backend'] == backend].sort_values(x_col)
