@@ -13,7 +13,7 @@ The project is organized to separate the Python package, scripts, and publicatio
 │   ├── src/                   # Source code for backends and CLI
 │   ├── scripts/               # Standalone scripts for analysis
 │   │   ├── bench.py           # Performance benchmarking
-│   │   ├── plot_perf_combined.py # Combined scaling plot generation
+│   │   ├── plot_performance.py # Combined scaling plot generation
 │   │   └── plot_posterior.py  # Posterior comparison plots
 │   └── tests/                 # Test suite
 ├── data/                      # Generated CSV files (gitignored)
@@ -21,6 +21,14 @@ The project is organized to separate the Python package, scripts, and publicatio
 ├── main.tex                   # LaTeX manuscript
 └── README.md                  # This file
 ```
+
+## Available Backends
+
+This project compares three different inference methods:
+
+- `sklearn`: The baseline implementation using `GaussianProcessRegressor` from scikit-learn. It represents the standard, exact GP regression approach.
+- `dapper_enkf`: An implementation using the standard Ensemble Kalman Filter (EnKF) from the DAPPER library. This is the global, non-localized data assimilation method.
+- `dapper_letkf`: An implementation using the Local Ensemble Transform Kalman Filter (LETKF) from DAPPER. This method applies localization, only updating state variables using nearby observations, which is analogous to sparse or localized GP methods.
 
 ## Installation
 
@@ -43,18 +51,18 @@ This provides a minimal, end-to-end workflow to generate a result.
 # 1. Generate a small dataset for observation scaling
 uv run python da_gp/scripts/bench.py \
     --n_obs_grid 100 500 --grid_size_fixed 1000 \
-    --backends sklearn dapper --csv data/quick_obs.csv
+    --backends sklearn dapper_enkf dapper_letkf --csv data/quick_obs.csv
 
 # 2. Generate a small dataset for dimension scaling
 uv run python da_gp/scripts/bench.py \
     --dim_grid 500 1000 --n_obs_fixed 500 \
-    --backends sklearn dapper --csv data/quick_dim.csv
+    --backends sklearn dapper_enkf dapper_letkf --csv data/quick_dim.csv
 
 # 3. Create the combined performance plot from the quick data
-uv run python da_gp/scripts/plot_perf_combined.py data/quick_obs.csv data/quick_dim.csv --out figures/quick_perf.pdf
+uv run python da_gp/scripts/plot_performance.py data/quick_obs.csv data/quick_dim.csv
 
-# 4. Generate a posterior plot
-uv run python da_gp/scripts/plot_posterior.py --n_draws 200
+# 4. Generate a posterior plot showing all three backends
+uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 
 # 5. Build the paper
 latexmk -pdf main.tex
@@ -69,21 +77,21 @@ This is the complete workflow to reproduce the figures for the paper.
 uv run python da_gp/scripts/bench.py \
     --n_obs_grid 100 500 1000 2000 5000 10000 20000\
     --grid_size_fixed 2000 \
-    --backends sklearn dapper \
+    --backends sklearn dapper_enkf dapper_letkf \
     --csv data/bench_obs.csv
 
 # Step 2: Generate dimension scaling data
 uv run python da_gp/scripts/bench.py \
     --dim_grid 500 1000 2000 4000 8000 \
     --n_obs_fixed 2000 \
-    --backends sklearn dapper \
+    --backends sklearn dapper_enkf dapper_letkf \
     --csv data/bench_dim.csv
 
 # Step 3: Create the final, combined scaling plot
-uv run python da_gp/scripts/plot_perf_combined.py data/bench_obs.csv data/bench_dim.csv
+uv run python da_gp/scripts/plot_performance.py data/bench_obs.csv data/bench_dim.csv
 
 # Step 4: Generate the final posterior comparison plot
-uv run python da_gp/scripts/plot_posterior.py --backends sklearn dapper --n_obs 50
+uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 
 # Output files used by main.tex:
 # - figures/perf_scaling.pdf
@@ -104,10 +112,11 @@ uv run pytest da_gp/tests/test_shapes.py -v
 
 ### Main CLI (`da-gp`)
 
-Run a single experiment.
+Run a single experiment. Available backends are `sklearn`, `dapper_enkf`, and `dapper_letkf`.
 
 ```bash
-uv run da-gp --backend sklearn --n_obs 1000 --grid_size 500```
+uv run da-gp --backend dapper_letkf --n_obs 1000 --grid_size 500
+```
 
 ### Benchmark Script
 
@@ -123,7 +132,7 @@ Generate plots from benchmark data.
 
 ```bash
 # Create the combined, publication-quality performance plot
-uv run python da_gp/scripts/plot_perf_combined.py data/bench_obs.csv data/bench_dim.csv
+uv run python da_gp/scripts/plot_performance.py data/bench_obs.csv data/bench_dim.csv
 
 # Create the posterior samples plot
 uv run python da_gp/scripts/plot_posterior.py --n_obs 50

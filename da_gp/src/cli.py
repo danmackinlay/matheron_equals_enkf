@@ -30,9 +30,16 @@ def _load_backend(backend: str, n_obs: int, n_ens: int = 40) -> Tuple[np.ndarray
         mean = result['posterior_mean']
         std = result.get('posterior_std', np.ones_like(mean) * 0.1)
         
-    elif backend == "dapper":
+    elif backend == "dapper_enkf":
         from . import gp_dapper as module
-        result = module.run(n_ens=n_ens, n_obs=n_obs)
+        result = module.run_enkf(n_ens=n_ens, n_obs=n_obs)
+        mean = result['posterior_mean']
+        ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(mean))))
+        std = np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
+        
+    elif backend == "dapper_letkf":
+        from . import gp_dapper as module
+        result = module.run_letkf(n_ens=n_ens, n_obs=n_obs)
         mean = result['posterior_mean']
         ensemble = result.get('posterior_ensemble', np.zeros((n_ens, len(mean))))
         std = np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
@@ -54,7 +61,7 @@ def main() -> None:
     )
     parser.add_argument(
         '--backend', 
-        choices=['dapper', 'sklearn'],
+        choices=['sklearn', 'dapper_enkf', 'dapper_letkf'],
         required=True,
         help="Backend to use for the experiment"
     )
@@ -99,12 +106,15 @@ def main() -> None:
     start_time = time.perf_counter()
     
     try:
-        if args.backend == 'dapper':
-            from . import gp_dapper as backend
-            result = backend.run(n_ens=args.n_ens, n_obs=args.n_obs)
-        elif args.backend == 'sklearn':
+        if args.backend == 'sklearn':
             from . import gp_sklearn as backend
             result = backend.run(n_obs=args.n_obs, n_ens=args.n_ens)
+        elif args.backend == 'dapper_enkf':
+            from . import gp_dapper as backend
+            result = backend.run_enkf(n_ens=args.n_ens, n_obs=args.n_obs)
+        elif args.backend == 'dapper_letkf':
+            from . import gp_dapper as backend
+            result = backend.run_letkf(n_ens=args.n_ens, n_obs=args.n_obs)
         else:
             raise ValueError(f"Unknown backend: {args.backend}")
             

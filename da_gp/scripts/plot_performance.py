@@ -26,7 +26,7 @@ def plot_ax(ax, df, x_col, fixed_col, backends, colors): # Now accepts colors di
         return
 
     # --- FIX 1: Use the consistent color map passed from main ---
-    markers = {'sklearn': 'o', 'dapper': 's'}
+    markers = {'sklearn': 'o', 'dapper_enkf': 's', 'dapper_letkf': '^'}
 
     for backend in backends:
         backend_data = df_filtered[df_filtered['backend'] == backend].sort_values(x_col)
@@ -60,7 +60,7 @@ def main():
     parser.add_argument("obs_csv", help="CSV for observation scaling (e.g., data/bench_obs.csv)")
     parser.add_argument("dim_csv", help="CSV for dimension scaling (e.g., data/bench_dim.csv)")
     parser.add_argument("--out", default="figures/perf_scaling.pdf", help="Output figure path")
-    parser.add_argument("--backends", nargs="+", default=["sklearn", "dapper"], help="Backends to plot")
+    parser.add_argument("--backends", nargs="+", default=["sklearn", "dapper_enkf", "dapper_letkf"], help="Backends to plot")
 
     args = parser.parse_args()
 

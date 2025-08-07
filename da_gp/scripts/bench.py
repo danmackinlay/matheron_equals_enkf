@@ -8,7 +8,7 @@ import time
 import subprocess
 from pathlib import Path
 
-DEFAULT_BACKENDS = ["sklearn", "dapper"]
+DEFAULT_BACKENDS = ["sklearn", "dapper_enkf", "dapper_letkf"]
 
 
 def run_once(backend: str, n_obs: int, grid_size: int = None) -> float:
@@ -86,7 +86,7 @@ def main():
         "--backends",
         nargs="+",
         default=DEFAULT_BACKENDS,
-        choices=["sklearn", "dapper"],
+        choices=["sklearn", "dapper_enkf", "dapper_letkf"],
         help="Backends to test (default: sklearn dapper)"
     )
     
