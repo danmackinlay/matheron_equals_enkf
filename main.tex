@@ -426,7 +426,7 @@ Treating EnKF analysis as an empirical Matheron  brings mature geophysical tool-
 % ----------------------------------------------------------------
 
 We revisit the classic 1D kriging problem to demonstrate both the direct equivalence of the EnKF update to GP regression and the power of extending this link. We compare three solvers side-by-side: a standard GP implementation, its equivalent EnKF formulation, and the Local Ensemble Transform Kalman Filter (LETKF)~\citep{Bocquet2020Online,Hunt2007Efficient}, a popular data assimilation variant that introduces covariance localization. This illustrates how mature geophysical tools can be immediately repurposed for scalable GP inference. Code is available in the supplement.
-
+We note that the Ensemble Kalman solvers used here are chosen for ease of implementation rather than efficiency of performance, and so we do not expect to see massive performance gains on these small problems.
 \begin{quote}
 \textbf{Task.}  Recover a latent field
 $x\!\in\!\mathbb R^{d}$ on a unit grid from
@@ -442,22 +442,21 @@ We test grid sizes $d\in\{200,400,600,800\}$.
 \begin{itemize}
     \item \textbf{GP Regression:} The exact posterior computed via \texttt{GaussianProcessRegressor} from \textsc{scikit-learn}. This serves as our ground truth and scales as $\mathcal{O}(m^3)$ with observations.
     \item \textbf{EnKF:} An implementation of the standard Ensemble Kalman Filter using DAPPER~\citep{Raanes2024DAPPER}. It is the direct, empirical equivalent of the Matheron update and is expected to be computationally cheaper than the exact GP.
-    \item \textbf{LETKF:} The Local Ensemble Transform Kalman Filter \citep{Hunt2007Efficient,Bocquet2020Online}, also implemented in DAPPER. This method introduces localization, where each state variable is updated using only a subset of nearby observations. This is a common technique in data assimilation for improving performance in high-dimensional systems.
+    \item \textbf{LETKF:} The Local Ensemble Transform Kalman Filter \citep{Hunt2007Efficient,Bocquet2020Online}, also implemented in DAPPER. This method introduces localization, where each state variable is updated using only a subset of nearby observations. This is a common technique in data assimilation for improving accuracy in high-dimensional systems.
 \end{itemize}
 
 We report \textbf{median fit and predict times} obtained with our in-process timer over multiple runs to ensure statistical robustness.
 
 \paragraph{Accuracy.}
-Figure~\ref{fig:posterior-samples} shows posterior draws from all three methods.
-As predicted by the theory, the means of the standard GP and the EnKF are numerically identical (RMSE $<10^{-13}$). The LETKF, being a localized approximation, produces a slightly different posterior mean but remains an excellent fit to the true field. This highlights the trade-off between exactness and the assumptions made for computational gain.
+\figureref{fig:posterior-samples} shows posterior draws from all three methods using squared-exponential basis functions matched to the generating process (the ``true prior'' setting). We see similar RMSE for the mean estimate between the methods, with a slightly overconfident posterior uncertainty in the ensemble methods.
 
 \paragraph{Speed.}
-Figure~\ref{fig:timing-curves} shows separate \textbf{training} and \textbf{prediction} times. Training with \texttt{GaussianProcessRegressor} scales cubically in $m$; prediction scales quadratically, but still rises steeply for large $m$. In contrast, EnKF and LETKF training scale linearly in ensemble size and prediction is effectively $O(1)$ for fixed ensemble, yielding two nearly flat curves. This demonstrates the profound efficiency gains possible by adopting mature DA techniques.
+Figure~\ref{fig:timing-curves} shows separate \textbf{training} and \textbf{prediction} times. Training with \textsc{scikit-learn} scales cubically in $m$; prediction scales quadratically, but still rises steeply for large $m$. In contrast, EnKF and LETKF training scale linearly in ensemble size and prediction is effectively $O(1)$ for fixed ensemble, yielding two nearly flat curves. This demonstrates the profound efficiency gains possible by adopting mature DA techniques as the problem size moves beyond the scale of GP regression.
 
 \begin{figure}
   \centering
   \includegraphics[width=\linewidth]{fig_posterior_samples.pdf}
-  \caption{Posterior draws from the exact GP (sklearn), EnKF, and LETKF. The GP and EnKF posteriors are visually indistinguishable, while the localized LETKF provides a close approximation.}
+  \caption{Posterior draws from the exact GP (sklearn), EnKF, and LETKF.}
   \label{fig:posterior-samples}
 \end{figure}
 
