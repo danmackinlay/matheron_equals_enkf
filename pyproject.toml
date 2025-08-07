@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Data Assimilation vs Gaussian Processes benchmark and paper"
 authors = [{name = "Dan MacKinlay", email = "dan@mackinlay.net"}]
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "numpy",

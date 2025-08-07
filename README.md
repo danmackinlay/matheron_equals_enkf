@@ -138,6 +138,12 @@ uv run python da_gp/scripts/plot_performance.py data/bench_obs.csv data/bench_di
 uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 ```
 
+## Licensing
+
+The code in this repository is licensed under the **MIT License**. See the `LICENSE` file for details.
+
+The manuscript (`main.tex`) and associated figures are licensed under the **Creative Commons Attribution 4.0 International License (CC BY 4.0)**.
+
 ## Citation
 
 This code accompanies the paper "The Ensemble Kalman Update is an Empirical Matheron Update".
