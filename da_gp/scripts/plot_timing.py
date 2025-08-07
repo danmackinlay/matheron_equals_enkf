@@ -23,41 +23,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
-# Publication-ready plot settings
-try:
-    from tueplots import bundles
-    plt.rcParams.update(bundles.jmlr2001(nrows=1, ncols=2))
-except ImportError:
-    print("Warning: tueplots not available, using default matplotlib settings")
-    plt.rcParams.update({
-        'figure.figsize': (12, 5),
-        'font.size': 10,
-        'axes.labelsize': 11,
-        'legend.fontsize': 9
-    })
-
-# Backend styling
-BACKEND_STYLES = {
-    'sklearn': {'marker': 'o', 'color': 'C0', 'label': 'Sklearn GP'},
-    'dapper_enkf': {'marker': 's', 'color': 'C1', 'label': 'EnKF'},
-    'dapper_letkf': {'marker': '^', 'color': 'C2', 'label': 'LETKF'},
-}
+# Import unified figure styling
+from da_gp.figstyle import setup_figure_style
 
 
-def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comparison.pdf"):
+def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comparison.pdf", colorblind_friendly: bool = False, show_legend: bool = True):
     """Create dual-curve log-log plots showing fit and predict times."""
     
+    # Setup unified styling
+    backend_styles = setup_figure_style(colorblind_friendly=colorblind_friendly)
+    
     # Create figure with two subplots side by side
-    fig, (ax_fit, ax_pred) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (ax_fit, ax_pred) = plt.subplots(1, 2)
     
     # Plot fit times (left subplot)
     ax_fit.set_title("Training Time")
     ax_fit.set_xlabel("observations (m)")
     ax_fit.set_ylabel("wall-clock time [s]")
     
-    for backend, style in BACKEND_STYLES.items():
+    for backend, style in backend_styles.items():
         backend_data = df[df['backend'] == backend]
         if len(backend_data) > 0:
+            # Hardening: Skip backends with insufficient data points
+            if backend_data.shape[0] < 2:
+                print(f"Warning: Skipping {backend} - insufficient data points ({backend_data.shape[0]} < 2)")
+                continue
+                
             # Sort by n_obs for clean line plots
             backend_data = backend_data.sort_values('n_obs')
             
@@ -67,22 +58,32 @@ def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comp
                 marker=style['marker'],
                 color=style['color'],
                 label=style['label'],
-                linestyle='-',
+                linestyle=style['linestyle'],
                 alpha=0.8,
                 markersize=6
             )
     
     ax_fit.grid(True, alpha=0.3)
-    ax_fit.legend()
+    if show_legend:
+        ax_fit.legend()
+    
+    # Explicit log scale setting for clarity (although loglog already forces it)
+    ax_fit.set_xscale('log')
+    ax_fit.set_yscale('log')
     
     # Plot predict times (right subplot)
     ax_pred.set_title("Prediction Time")
     ax_pred.set_xlabel("observations (m)")
     ax_pred.set_ylabel("wall-clock time [s]")
     
-    for backend, style in BACKEND_STYLES.items():
+    for backend, style in backend_styles.items():
         backend_data = df[df['backend'] == backend]
         if len(backend_data) > 0:
+            # Hardening: Skip backends with insufficient data points
+            if backend_data.shape[0] < 2:
+                print(f"Warning: Skipping {backend} - insufficient data points ({backend_data.shape[0]} < 2)")
+                continue
+                
             backend_data = backend_data.sort_values('n_obs')
             
             ax_pred.loglog(
@@ -91,13 +92,18 @@ def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comp
                 marker=style['marker'],
                 color=style['color'], 
                 label=style['label'],
-                linestyle='-',
+                linestyle=style['linestyle'],
                 alpha=0.8,
                 markersize=6
             )
     
     ax_pred.grid(True, alpha=0.3)
-    ax_pred.legend()
+    if show_legend:
+        ax_pred.legend()
+    
+    # Explicit log scale setting for clarity
+    ax_pred.set_xscale('log')
+    ax_pred.set_yscale('log')
     
     # Adjust layout and save
     plt.tight_layout()
@@ -111,17 +117,21 @@ def plot_timing_curves(df: pd.DataFrame, output_path: str = "figures/timing_comp
     return fig
 
 
-def plot_dimension_scaling(df: pd.DataFrame, output_path: str = "figures/dimension_scaling.pdf"):
+def plot_dimension_scaling(df: pd.DataFrame, output_path: str = "figures/dimension_scaling.pdf", fixed_n_obs: int = None, colorblind_friendly: bool = False, show_legend: bool = True):
     """Create plots showing scaling with state dimension."""
     
+    # Setup unified styling
+    backend_styles = setup_figure_style(colorblind_friendly=colorblind_friendly)
+    
     # Filter for dimension scaling (fixed n_obs, varying grid_size)
-    # Find the most common n_obs value - this should be our "fixed" value
-    n_obs_counts = df['n_obs'].value_counts()
-    if len(n_obs_counts) == 0:
-        print("No data available for dimension scaling plot")
-        return None
-        
-    fixed_n_obs = n_obs_counts.index[0]
+    if fixed_n_obs is None:
+        # Find the most common n_obs value - this should be our "fixed" value
+        n_obs_counts = df['n_obs'].value_counts()
+        if len(n_obs_counts) == 0:
+            print("No data available for dimension scaling plot")
+            return None
+        fixed_n_obs = n_obs_counts.index[0]
+    
     dim_data = df[df['n_obs'] == fixed_n_obs]
     
     if len(dim_data) == 0:
@@ -129,16 +139,21 @@ def plot_dimension_scaling(df: pd.DataFrame, output_path: str = "figures/dimensi
         return None
     
     # Create figure with two subplots
-    fig, (ax_fit, ax_pred) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (ax_fit, ax_pred) = plt.subplots(1, 2)
     
     # Plot fit times vs grid size
     ax_fit.set_title(f"Training Time (n_obs={fixed_n_obs})")
     ax_fit.set_xlabel("state dimension (d)")
     ax_fit.set_ylabel("wall-clock time [s]")
     
-    for backend, style in BACKEND_STYLES.items():
+    for backend, style in backend_styles.items():
         backend_data = dim_data[dim_data['backend'] == backend]
         if len(backend_data) > 0:
+            # Hardening: Skip backends with insufficient data points
+            if backend_data.shape[0] < 2:
+                print(f"Warning: Skipping {backend} - insufficient data points ({backend_data.shape[0]} < 2)")
+                continue
+                
             backend_data = backend_data.sort_values('grid_size')
             
             ax_fit.loglog(
@@ -147,22 +162,30 @@ def plot_dimension_scaling(df: pd.DataFrame, output_path: str = "figures/dimensi
                 marker=style['marker'],
                 color=style['color'],
                 label=style['label'],
-                linestyle='-',
+                linestyle=style['linestyle'],
                 alpha=0.8,
                 markersize=6
             )
     
     ax_fit.grid(True, alpha=0.3)
-    ax_fit.legend()
+    if show_legend:
+        ax_fit.legend()
+    ax_fit.set_xscale('log')
+    ax_fit.set_yscale('log')
     
     # Plot predict times vs grid size
     ax_pred.set_title(f"Prediction Time (n_obs={fixed_n_obs})")
     ax_pred.set_xlabel("state dimension (d)")
     ax_pred.set_ylabel("wall-clock time [s]")
     
-    for backend, style in BACKEND_STYLES.items():
+    for backend, style in backend_styles.items():
         backend_data = dim_data[dim_data['backend'] == backend]
         if len(backend_data) > 0:
+            # Hardening: Skip backends with insufficient data points
+            if backend_data.shape[0] < 2:
+                print(f"Warning: Skipping {backend} - insufficient data points ({backend_data.shape[0]} < 2)")
+                continue
+                
             backend_data = backend_data.sort_values('grid_size')
             
             ax_pred.loglog(
@@ -171,13 +194,16 @@ def plot_dimension_scaling(df: pd.DataFrame, output_path: str = "figures/dimensi
                 marker=style['marker'],
                 color=style['color'],
                 label=style['label'],
-                linestyle='-',
+                linestyle=style['linestyle'],
                 alpha=0.8,
                 markersize=6
             )
     
     ax_pred.grid(True, alpha=0.3)
-    ax_pred.legend()
+    if show_legend:
+        ax_pred.legend()
+    ax_pred.set_xscale('log')
+    ax_pred.set_yscale('log')
     
     plt.tight_layout()
     
@@ -207,6 +233,26 @@ def main():
         action="store_true",
         help="Show plots interactively"
     )
+    parser.add_argument(
+        "--fixed-n-obs",
+        type=int,
+        help="Fixed n_obs value for dimension scaling plot (default: auto-detect)"
+    )
+    parser.add_argument(
+        "--fixed-grid",
+        type=int,
+        help="Fixed grid_size value for observation scaling plot (default: auto-detect)"
+    )
+    parser.add_argument(
+        "--colorblind-friendly",
+        action="store_true",
+        help="Use color-blind friendly palette"
+    )
+    parser.add_argument(
+        "--no-legend",
+        action="store_true",
+        help="Hide legends on plots"
+    )
     
     args = parser.parse_args()
     
@@ -227,13 +273,20 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
+    show_legend = not args.no_legend
+    
     # Observation scaling plot (fit + predict vs n_obs)
     obs_plot_path = output_dir / "timing_vs_observations.pdf"
-    plot_timing_curves(df, str(obs_plot_path))
+    plot_timing_curves(df, str(obs_plot_path), 
+                      colorblind_friendly=args.colorblind_friendly,
+                      show_legend=show_legend)
     
     # Dimension scaling plot (fit + predict vs grid_size)
     dim_plot_path = output_dir / "timing_vs_dimensions.pdf"
-    plot_dimension_scaling(df, str(dim_plot_path))
+    plot_dimension_scaling(df, str(dim_plot_path), 
+                          fixed_n_obs=args.fixed_n_obs,
+                          colorblind_friendly=args.colorblind_friendly,
+                          show_legend=show_legend)
     
     if args.show:
         plt.show()

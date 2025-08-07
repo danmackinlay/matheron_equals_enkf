@@ -110,11 +110,12 @@ uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 
 The new timing system provides several advantages over the legacy approach:
 
-1. **Separate fit and predict times**: Shows that GP training is O(m³) while EnKF prediction is effectively O(1) for fixed ensemble size
+1. **Separate fit and predict times**: Dual-curve plots show that GP training is O(m³) while EnKF prediction is effectively O(1) for fixed ensemble size
 2. **Internal timing**: Uses `time.perf_counter()` to eliminate Python startup and I/O overhead  
 3. **Statistical robustness**: Includes warm-up runs and reports median of 5 timing repeats
 4. **Shared datasets**: All backends use identical synthetic data for fair comparison
-5. **Dual-curve plots**: Log-log plots clearly show scaling differences between training and prediction
+5. **Hardened plotting**: Validates data points, uses unified JMLR styling, supports color-blind friendly palettes
+6. **Flexible visualization**: CLI flags for fixed values, legend control, and explicit scale settings
 
 ## Legacy Benchmarking (Subprocess-based)
 
@@ -179,14 +180,15 @@ Key features:
 Generate publication-quality plots from benchmark data.
 
 ```bash
-# NEW: Dual-curve timing plots (fit vs predict times)
-uv run python da_gp/scripts/plot_timing.py data/timing_results.csv --output-dir figures
+# NEW: Dual-curve timing plots with hardened validation and JMLR styling
+uv run python da_gp/scripts/plot_timing.py data/timing_results.csv --output-dir figures --colorblind-friendly
 
-# Create the posterior samples plot
-uv run python da_gp/scripts/plot_posterior.py --n_obs 50
+# Create the posterior samples plot with unified styling
+uv run python da_gp/scripts/plot_posterior.py --n_obs 50 --colorblind-friendly
 
-# Legacy: Combined performance plot (subprocess-based, deprecated)
-uv run python da_gp/scripts/plot_performance.py data/legacy_obs.csv data/legacy_dim.csv
+# Advanced timing plot options
+uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
+    --fixed-n-obs 1000 --no-legend --output-dir figures
 ```
 
 ## Licensing

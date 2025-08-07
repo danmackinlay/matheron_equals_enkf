@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
-
+# Import unified styling
+from da_gp.figstyle import setup_figure_style
 from da_gp.src.gp_common import X_grid, get_truth_and_mask, get_observations
 
 def run_backend(backend: str, truth: np.ndarray, mask: np.ndarray, obs: np.ndarray, n_obs: int, n_draws: int = 200, rng: np.random.Generator = None):
@@ -73,6 +74,11 @@ def main():
         default=True,
         help="Show the ground truth as a thick dotted line"
     )
+    parser.add_argument(
+        "--colorblind-friendly",
+        action="store_true",
+        help="Use color-blind friendly palette"
+    )
 
     args = parser.parse_args()
 
@@ -106,7 +112,9 @@ def main():
     obs = get_observations(truth, mask, noise_std=0.1, rng=rng)
 
     # Set up plotting
-    plt.figure(figsize=(12, 6))
+    # Setup unified styling
+    backend_styles = setup_figure_style(colorblind_friendly=args.colorblind_friendly)
+    plt.figure()
     x = X_grid.flatten()
 
     # Plot for each backend

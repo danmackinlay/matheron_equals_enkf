@@ -1,0 +1,77 @@
+name: Smoke Test - Timing Plots
+
+on:
+  push:
+    branches: [ main, consolidate-layout ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      run: uv python install ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: uv sync
+    
+    - name: Run tests
+      run: uv run pytest da_gp/tests/ -v
+    
+    - name: Generate tiny timing benchmark
+      run: |
+        uv run python da_gp/scripts/bench.py \
+          --n_obs_grid 50 100 \
+          --backends sklearn \
+          --csv data/smoke_test.csv \
+          --repeats 2
+    
+    - name: Validate CSV structure
+      run: |
+        uv run python -c "
+        import pandas as pd
+        df = pd.read_csv('data/smoke_test.csv')
+        required_cols = ['backend', 'n_obs', 'grid_size', 'fit_time', 'predict_time', 'total_time', 'rmse']
+        for col in required_cols:
+            assert col in df.columns, f'Missing column: {col}'
+        assert len(df) > 0, 'CSV is empty'
+        print('CSV validation passed')
+        "
+    
+    - name: Generate timing plots
+      run: |
+        uv run python da_gp/scripts/plot_timing.py data/smoke_test.csv --output-dir figures
+    
+    - name: Generate posterior plot
+      run: |
+        uv run python da_gp/scripts/plot_posterior.py --n_obs 20 --n_draws 10 --backends sklearn
+    
+    - name: Check plots were generated
+      run: |
+        ls -la figures/
+        test -f figures/timing_vs_observations.pdf
+        test -f figures/timing_vs_dimensions.pdf
+        test -f figures/posterior_samples.pdf
+        echo "All plots generated successfully"
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: smoke-test-plots-${{ matrix.python-version }}
+        path: |
+          figures/*.pdf
+          data/smoke_test.csv
+        retention-days: 7

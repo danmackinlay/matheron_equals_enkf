@@ -231,23 +231,30 @@ def main():
     print(f"Output: {args.csv}")
     print()
     
-    # Build complete parameter lists
-    if args.n_obs_grid and args.dim_grid:
-        # Both sweeps specified - use both
-        n_obs_list = args.n_obs_grid + [args.n_obs_fixed]
-        grid_size_list = [args.grid_size_fixed] + args.dim_grid
-    elif args.n_obs_grid:
-        # Observation sweep only
+    # Build complete parameter lists - ensure separate sweeps
+    if args.n_obs_grid and not args.dim_grid:
+        # Pure observation sweep
         n_obs_list = args.n_obs_grid
         grid_size_list = [args.grid_size_fixed]
-    else:
-        # Dimension sweep only
+    elif args.dim_grid and not args.n_obs_grid:
+        # Pure dimension sweep
         n_obs_list = [args.n_obs_fixed]
         grid_size_list = args.dim_grid
+    elif args.n_obs_grid and args.dim_grid:
+        # Both sweeps specified - this creates a cross-product
+        n_obs_list = args.n_obs_grid + [args.n_obs_fixed]
+        grid_size_list = [args.grid_size_fixed] + args.dim_grid
+    else:
+        # Should not reach here due to earlier validation
+        raise ValueError("Must specify either --n_obs_grid or --dim_grid")
     
     # Remove duplicates and sort
     n_obs_list = sorted(set(n_obs_list))
     grid_size_list = sorted(set(grid_size_list))
+    
+    # Fail-fast assertion to guarantee multiple data points in sweeps
+    assert len(n_obs_list) > 1 or len(grid_size_list) > 1, \
+        f"Sweep collapsed to single point: n_obs={n_obs_list}, grid_size={grid_size_list}. Need multiple values in at least one dimension."
     
     print("Generating shared synthetic datasets...")
     shared_data = generate_shared_data(n_obs_list, grid_size_list)
