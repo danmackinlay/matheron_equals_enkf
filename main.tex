@@ -451,7 +451,7 @@ We report \textbf{median fit and predict times} obtained with our in-process tim
 \figureref{fig:posterior-samples} shows posterior draws from all three methods using squared-exponential basis functions matched to the generating process (the ``true prior'' setting). We see similar RMSE for the mean estimate between the methods, with a slightly overconfident posterior uncertainty in the ensemble methods.
 
 \paragraph{Speed.}
-Figure~\ref{fig:timing-curves} shows separate \textbf{training} and \textbf{prediction} times. Training with \textsc{scikit-learn} scales cubically in $m$; prediction scales quadratically, but still rises steeply for large $m$. In contrast, EnKF and LETKF training scale linearly in ensemble size and prediction is effectively $O(1)$ for fixed ensemble, yielding two nearly flat curves. This demonstrates the profound efficiency gains possible by adopting mature DA techniques as the problem size moves beyond the scale of GP regression.
+Figure~\ref{fig:timing-curves} shows separate \textbf{training} and \textbf{prediction} times. Training with \textsc{scikit-learn} scales cubically in $m$; prediction scales quadratically, but still rises steeply for large $m$. In contrast, EnKF and LETKF training scale linearly in ensemble size and prediction is effectively $O(1)$ for fixed ensemble, yielding two nearly flat curves. As the problem size scales beyond feasibility of GP regression, we expect to achieve efficiency gains by adopting mature DA techniques.
 
 \begin{figure}
   \centering
