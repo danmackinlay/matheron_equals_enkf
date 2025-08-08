@@ -41,6 +41,9 @@ target-version = "py311"
 select = ["E", "F", "W", "C90", "I", "N", "UP", "YTT", "B", "A", "C4", "DTZ", "T10", "EM", "ISC", "ICN", "G", "PIE", "T20", "PT", "Q", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "ARG", "PTH", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "PERF", "RUF"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+"da_gp/src/cli.py" = ["T201"]  # Allow print statements in CLI user output
+
 [tool.mypy]
 python_version = "3.11"
 strict = true

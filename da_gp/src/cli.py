@@ -23,6 +23,10 @@ from typing import Any
 
 import numpy as np
 
+from da_gp.logging_setup import setup_logging, get_logger
+
+logger = get_logger(__name__)
+
 try:
     from mpi4py import MPI
 
@@ -90,6 +94,20 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Data Assimilation vs Gaussian Process benchmark"
     )
+    
+    # Logging arguments
+    parser.add_argument(
+        "--log-level",
+        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        default="WARNING",
+        help="Set the logging level (default: WARNING)",
+    )
+    parser.add_argument(
+        "--log-json",
+        action="store_true",
+        help="Use JSON formatting for logs",
+    )
+    
     parser.add_argument(
         "--backend",
         choices=["sklearn", "dapper_enkf", "dapper_letkf"],
@@ -114,6 +132,9 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    # Setup logging
+    setup_logging(args.log_level, json=args.log_json)
 
     # Set default grid size if not provided
     grid_size = args.grid_size if args.grid_size is not None else 2000
@@ -154,11 +175,11 @@ def main() -> None:
 
     except ImportError as e:
         if rank == 0:
-            print(f"Error: {e}", file=sys.stderr)
+            logger.error(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
         if rank == 0:
-            print(f"Error running {args.backend}: {e}", file=sys.stderr)
+            logger.error(f"Error running {args.backend}: {e}")
         sys.exit(1)
 
     elapsed_time = time.perf_counter() - start_time

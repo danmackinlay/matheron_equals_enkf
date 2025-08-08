@@ -25,6 +25,9 @@ import pandas as pd
 
 # Import unified figure styling
 from da_gp.figstyle import setup_figure_style
+from da_gp.logging_setup import setup_logging, get_logger
+
+logger = get_logger(__name__)
 
 
 def _choose_sweep(df: pd.DataFrame, sweep: str):
@@ -44,8 +47,8 @@ def _choose_sweep(df: pd.DataFrame, sweep: str):
             return "grid_size", "state dimension (d)", "grid_size", "", df
         else:
             # Fallback - use n_obs if both vary or neither vary
-            print(
-                f"Warning: Ambiguous sweep type (n_obs unique: {n_obs_unique}, grid_size unique: {grid_size_unique}), defaulting to n_obs"
+            logger.warning(
+                f"Ambiguous sweep type (n_obs unique: {n_obs_unique}, grid_size unique: {grid_size_unique}), defaulting to n_obs"
             )
             return "n_obs", "observations (m)", "n_obs", "", df
     else:
@@ -59,8 +62,8 @@ def _draw_axis(ax, df: pd.DataFrame, x_col: str, y_col: str, backend_styles: dic
         if len(backend_data) > 0:
             # Hardening: Skip backends with insufficient data points
             if backend_data.shape[0] < 2:
-                print(
-                    f"Warning: Skipping {backend} - insufficient data points ({backend_data.shape[0]} < 2)"
+                logger.warning(
+                    f"Skipping {backend} - insufficient data points ({backend_data.shape[0]} < 2)"
                 )
                 continue
 
@@ -110,7 +113,7 @@ def plot_timing(
             # Find the most common n_obs value
             n_obs_counts = filtered_df["n_obs"].value_counts()
             if len(n_obs_counts) == 0:
-                print("No data available for dimension scaling plot")
+                logger.error("No data available for dimension scaling plot")
                 return None
             fixed_n_obs = n_obs_counts.index[0]
 
@@ -118,7 +121,7 @@ def plot_timing(
         fixed_label_suffix = f" ($m={fixed_n_obs}$)"
 
         if len(filtered_df) == 0:
-            print(f"No data found for fixed n_obs={fixed_n_obs}")
+            logger.error(f"No data found for fixed n_obs={fixed_n_obs}")
             return None
 
     elif sweep == "obs" or (sweep == "auto" and x_col == "n_obs"):
@@ -128,7 +131,7 @@ def plot_timing(
             fixed_label_suffix = f" ($d={fixed_grid}$)"
 
             if len(filtered_df) == 0:
-                print(f"No data found for fixed grid_size={fixed_grid}")
+                logger.error(f"No data found for fixed grid_size={fixed_grid}")
                 return None
         else:
             fixed_label_suffix = ""
@@ -159,7 +162,7 @@ def plot_timing(
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     plt.savefig(output_path, bbox_inches="tight", dpi=300)
-    print(f"Timing plot saved to: {output_path}")
+    logger.info(f"Timing plot saved to: {output_path}")
 
     return fig
 
@@ -207,6 +210,20 @@ def plot_dimension_scaling(
 def main():
     """Main plotting script."""
     parser = argparse.ArgumentParser(description="Generate timing comparison plots")
+    
+    # Logging arguments
+    parser.add_argument(
+        "--log-level",
+        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        default="WARNING",
+        help="Set the logging level (default: WARNING)",
+    )
+    parser.add_argument(
+        "--log-json",
+        action="store_true",
+        help="Use JSON formatting for logs",
+    )
+    
     parser.add_argument("csv_file", help="CSV file containing benchmark timing data")
     parser.add_argument(
         "--output-dir",
@@ -235,11 +252,14 @@ def main():
 
     args = parser.parse_args()
 
+    # Setup logging
+    setup_logging(args.log_level, json=args.log_json)
+
     # Load data
     try:
         df = pd.read_csv(args.csv_file)
     except Exception as e:
-        print(f"Error loading data from {args.csv_file}: {e}")
+        logger.error(f"Error loading data from {args.csv_file}: {e}")
         return 1
 
     # Sanity guard: Fail fast if wrong CSV is used
@@ -254,11 +274,11 @@ def main():
             f"At least one dimension must have multiple values for meaningful timing analysis."
         )
 
-    print(f"Loaded {len(df)} timing records from {args.csv_file}")
-    print(f"Backends: {sorted(df['backend'].unique())}")
-    print(f"N_obs range: {df['n_obs'].min()}-{df['n_obs'].max()}")
-    print(f"Grid size range: {df['grid_size'].min()}-{df['grid_size'].max()}")
-    print()
+    logger.info(f"Loaded {len(df)} timing records from {args.csv_file}")
+    logger.info(f"Backends: {sorted(df['backend'].unique())}")
+    logger.info(f"N_obs range: {df['n_obs'].min()}-{df['n_obs'].max()}")
+    logger.info(f"Grid size range: {df['grid_size'].min()}-{df['grid_size'].max()}")
+    logger.info("")
 
     # Generate plots
     output_dir = Path(args.output_dir)
@@ -278,9 +298,9 @@ def main():
             colorblind_friendly=args.colorblind_friendly,
             show_legend=show_legend,
         )
-        print(f"Generated observation scaling plot: {obs_plot_path}")
+        logger.info(f"Generated observation scaling plot: {obs_plot_path}")
     else:
-        print(
+        logger.info(
             f"Skipping observation scaling plot - only {n_obs_unique} unique n_obs value(s)"
         )
 
@@ -295,9 +315,9 @@ def main():
             colorblind_friendly=args.colorblind_friendly,
             show_legend=show_legend,
         )
-        print(f"Generated dimension scaling plot: {dim_plot_path}")
+        logger.info(f"Generated dimension scaling plot: {dim_plot_path}")
     else:
-        print(
+        logger.info(
             f"Skipping dimension scaling plot - only {grid_size_unique} unique grid_size value(s)"
         )
 
@@ -306,7 +326,7 @@ def main():
     else:
         plt.close("all")
 
-    print("Plotting complete!")
+    logger.info("Plotting complete!")
     return 0
 
 

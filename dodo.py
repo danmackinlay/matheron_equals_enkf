@@ -18,6 +18,7 @@ Usage:
 Dependencies are managed by uv/pip and should be installed before running doit.
 """
 
+import os
 from pathlib import Path
 
 from doit.tools import config_changed
@@ -39,6 +40,9 @@ OBS_SWEEP = [100, 500, 1000, 2000, 5000]
 DIM_SWEEP = [250, 500, 1000, 2000, 4000]
 BACKENDS = ["sklearn", "dapper_enkf", "dapper_letkf"]
 REPEATS = 5
+
+# Logging configuration
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "WARNING")
 
 
 def task_setup_dirs():
@@ -72,7 +76,8 @@ def task_timing_obs_csv():
             f"--grid_size_fixed 2000 "
             f"--backends {backends_args} "
             f"--csv {csv_file} "
-            f"--repeats {REPEATS}"
+            f"--repeats {REPEATS} "
+            f"--log-level {LOG_LEVEL}"
         ],
         "targets": [str(csv_file)],
         "file_dep": [
@@ -106,7 +111,8 @@ def task_timing_dim_csv():
             f"--n_obs_fixed 1000 "
             f"--backends {backends_args} "
             f"--csv {csv_file} "
-            f"--repeats {REPEATS}"
+            f"--repeats {REPEATS} "
+            f"--log-level {LOG_LEVEL}"
         ],
         "targets": [str(csv_file)],
         "file_dep": [
@@ -136,7 +142,7 @@ def task_timing_vs_observations():
 
     return {
         "actions": [
-            f"uv run python {SCRIPTS_DIR}/plot_timing.py {csv_file} --output-dir {FIGURES_DIR}"
+            f"uv run python {SCRIPTS_DIR}/plot_timing.py {csv_file} --output-dir {FIGURES_DIR} --log-level {LOG_LEVEL}"
         ],
         "targets": [str(pdf_file)],
         "file_dep": [
@@ -156,7 +162,7 @@ def task_timing_vs_dimensions():
 
     return {
         "actions": [
-            f"uv run python {SCRIPTS_DIR}/plot_timing.py {csv_file} --output-dir {FIGURES_DIR}"
+            f"uv run python {SCRIPTS_DIR}/plot_timing.py {csv_file} --output-dir {FIGURES_DIR} --log-level {LOG_LEVEL}"
         ],
         "targets": [str(pdf_file)],
         "file_dep": [
@@ -175,7 +181,7 @@ def task_posterior_samples():
 
     return {
         "actions": [
-            f"uv run python {SCRIPTS_DIR}/plot_posterior.py --n_obs 50 --grid_size 1000"
+            f"uv run python {SCRIPTS_DIR}/plot_posterior.py --n_obs 50 --grid_size 1000 --log-level {LOG_LEVEL}"
         ],
         "targets": [str(pdf_file)],
         "file_dep": [

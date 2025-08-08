@@ -18,7 +18,6 @@
 """Benchmark script for DA vs GP performance comparison with internal timing."""
 
 import argparse
-import logging
 import os
 import platform
 from pathlib import Path
@@ -29,9 +28,9 @@ import numpy as np
 import pandas as pd
 
 from da_gp.src.gp_common import Problem, generate_experiment_data
+from da_gp.logging_setup import setup_logging, get_logger
 
-# Set up logging
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 DEFAULT_BACKENDS = ["sklearn", "dapper_enkf", "dapper_letkf"]
 
@@ -187,34 +186,43 @@ def generate_shared_data(n_obs_list: list, grid_size_list: list) -> dict[tuple, 
     return shared_data
 
 
-def print_system_info():
-    """Print system information for reproducibility."""
-    print(f"Python version: {platform.python_version()}")
-    print(f"Platform: {platform.platform()}")
-    print(f"Processor: {platform.processor()}")
+def log_system_info():
+    """Log system information for reproducibility."""
+    logger.info(f"Python version: {platform.python_version()}")
+    logger.info(f"Platform: {platform.platform()}")
+    logger.info(f"Processor: {platform.processor()}")
 
     # Try to get BLAS info
     try:
         import numpy as np
 
-        print(f"NumPy version: {np.__version__}")
+        logger.info(f"NumPy version: {np.__version__}")
         config = np.show_config(mode="dicts")
         if "blas_info" in config:
-            print(f"BLAS: {config['blas_info'].get('name', 'unknown')}")
+            logger.info(f"BLAS: {config['blas_info'].get('name', 'unknown')}")
     except Exception:
         pass
 
-    print(f"OMP_NUM_THREADS: {os.environ.get('OMP_NUM_THREADS', 'unset')}")
-    print()
+    logger.info(f"OMP_NUM_THREADS: {os.environ.get('OMP_NUM_THREADS', 'unset')}")
 
 
 def main():
     """Main benchmark runner with internal timing."""
-    # Configure logging
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-
     parser = argparse.ArgumentParser(
         description="Benchmark DA vs GP performance with internal timing"
+    )
+
+    # Logging arguments
+    parser.add_argument(
+        "--log-level",
+        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        default="WARNING",
+        help="Set the logging level (default: WARNING)",
+    )
+    parser.add_argument(
+        "--log-json",
+        action="store_true",
+        help="Use JSON formatting for logs",
     )
 
     # Observation sweep parameters
@@ -263,6 +271,9 @@ def main():
 
     args = parser.parse_args()
 
+    # Setup logging
+    setup_logging(args.log_level, json=args.log_json)
+
     # Validate arguments - need either obs_grid or dim_grid
     if not args.n_obs_grid and not args.dim_grid:
         parser.error("Must specify either --n_obs_grid or --dim_grid (or both)")
@@ -270,21 +281,21 @@ def main():
     # Ensure output directory exists
     Path(args.csv).parent.mkdir(parents=True, exist_ok=True)
 
-    print("=" * 60)
-    print("BENCHMARK WITH INTERNAL TIMING")
-    print("=" * 60)
-    print_system_info()
+    logger.info("=" * 60)
+    logger.info("BENCHMARK WITH INTERNAL TIMING")
+    logger.info("=" * 60)
+    log_system_info()
 
-    print(f"Backends: {args.backends}")
-    print(f"Timing repeats: {args.repeats}")
+    logger.info(f"Backends: {args.backends}")
+    logger.info(f"Timing repeats: {args.repeats}")
     if args.n_obs_grid:
-        print(
+        logger.info(
             f"Observation counts: {args.n_obs_grid} (grid_size={args.grid_size_fixed})"
         )
     if args.dim_grid:
-        print(f"Grid sizes: {args.dim_grid} (n_obs={args.n_obs_fixed})")
-    print(f"Output: {args.csv}")
-    print()
+        logger.info(f"Grid sizes: {args.dim_grid} (n_obs={args.n_obs_fixed})")
+    logger.info(f"Output: {args.csv}")
+    logger.info("")
 
     # Build complete parameter lists - ensure separate sweeps
     if args.n_obs_grid and not args.dim_grid:
@@ -319,10 +330,10 @@ def main():
             f"Sweep collapsed to single point: n_obs={n_obs_list}, grid_size={grid_size_list}. Need multiple values in at least one dimension."
         )
 
-    print("Generating shared synthetic datasets...")
+    logger.info("Generating shared synthetic datasets...")
     shared_data = generate_shared_data(n_obs_list, grid_size_list)
-    print(f"Generated {len(shared_data)} datasets")
-    print()
+    logger.info(f"Generated {len(shared_data)} datasets")
+    logger.info("")
 
     # Collect results
     results = []
@@ -333,7 +344,7 @@ def main():
         for grid_size in grid_size_list:
             for n_obs in n_obs_list:
                 current_run += 1
-                print(
+                logger.info(
                     f"[{current_run}/{total_runs}] {backend} (n_obs={n_obs}, grid_size={grid_size})"
                 )
 
@@ -361,33 +372,33 @@ def main():
                     }
                 )
 
-                print(
+                logger.info(
                     f"  fit: {timing_result.fit_time:.3f}s, predict: {timing_result.predict_time:.3f}s, total: {timing_result.total_time:.3f}s"
                 )
-                print(f"  RMSE: {timing_result.rmse:.4f}")
-                print()
+                logger.info(f"  RMSE: {timing_result.rmse:.4f}")
+                logger.info("")
 
     # Save results to CSV
     df = pd.DataFrame(results)
     df.to_csv(args.csv, index=False)
 
-    print("=" * 60)
-    print("BENCHMARK COMPLETE")
-    print("=" * 60)
-    print(f"Results saved to: {args.csv}")
-    print(f"Total experiments: {len(results)}")
-    print()
+    logger.info("=" * 60)
+    logger.info("BENCHMARK COMPLETE")
+    logger.info("=" * 60)
+    logger.info(f"Results saved to: {args.csv}")
+    logger.info(f"Total experiments: {len(results)}")
+    logger.info("")
 
-    # Print summary statistics
-    print("SUMMARY:")
+    # Log summary statistics
+    logger.info("SUMMARY:")
     for backend in args.backends:
         backend_results = df[df["backend"] == backend]
         if len(backend_results) > 0:
-            print(f"{backend}:")
-            print(f"  Mean fit time: {backend_results['fit_time'].mean():.3f}s")
-            print(f"  Mean predict time: {backend_results['predict_time'].mean():.3f}s")
-            print(f"  Mean RMSE: {backend_results['rmse'].mean():.4f}")
-            print()
+            logger.info(f"{backend}:")
+            logger.info(f"  Mean fit time: {backend_results['fit_time'].mean():.3f}s")
+            logger.info(f"  Mean predict time: {backend_results['predict_time'].mean():.3f}s")
+            logger.info(f"  Mean RMSE: {backend_results['rmse'].mean():.4f}")
+            logger.info("")
 
 
 if __name__ == "__main__":

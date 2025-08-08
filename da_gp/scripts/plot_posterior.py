@@ -26,6 +26,9 @@ import numpy as np
 # Import unified styling
 from da_gp.figstyle import setup_figure_style
 from da_gp.src.gp_common import Problem, generate_experiment_data
+from da_gp.logging_setup import setup_logging, get_logger
+
+logger = get_logger(__name__)
 
 
 def run_backend(
@@ -61,6 +64,20 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate posterior plots with dual-backend comparison"
     )
+    
+    # Logging arguments
+    parser.add_argument(
+        "--log-level",
+        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        default="WARNING",
+        help="Set the logging level (default: WARNING)",
+    )
+    parser.add_argument(
+        "--log-json",
+        action="store_true",
+        help="Use JSON formatting for logs",
+    )
+    
     parser.add_argument(
         "--backends",
         nargs="+",
@@ -100,6 +117,9 @@ def main():
 
     args = parser.parse_args()
 
+    # Setup logging
+    setup_logging(args.log_level, json=args.log_json)
+
     # Create the single, master RNG instance for this run
     rng = np.random.default_rng(42)
 
@@ -122,7 +142,7 @@ def main():
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
 
     # Generate consistent data for all backends using Problem-based approach
-    print(f"Generating data with {args.n_obs} observations...")
+    logger.info(f"Generating data with {args.n_obs} observations...")
     problem = Problem(
         grid_size=args.grid_size, n_obs=args.n_obs, noise_std=0.1, rng=rng
     )
@@ -137,7 +157,7 @@ def main():
     # Plot for each backend
     for backend in args.backends:
         try:
-            print(f"Running {backend} backend...")
+            logger.info(f"Running {backend} backend...")
             result = run_backend(backend, problem, truth, mask, obs, args.n_draws)
             samples = result["posterior_samples"]
             color = colors.get(backend, "gray")
@@ -149,10 +169,10 @@ def main():
             # Add a single representative line for the legend
             plt.plot([], [], lw=2, color=color, label=f"{backend.upper()}")
 
-            print(f"  {backend}: RMSE = {result.get('rmse', 0.0):.6f}")
+            logger.info(f"  {backend}: RMSE = {result.get('rmse', 0.0):.6f}")
 
         except Exception as e:
-            print(f"Error with {backend}: {e}")
+            logger.error(f"Error with {backend}: {e}")
             continue
 
     # Plot truth (optional)
@@ -196,7 +216,7 @@ def main():
 
     # Save figure
     plt.savefig(args.out, dpi=300, bbox_inches="tight")
-    print(f"Saved figure to {args.out}")
+    logger.info(f"Saved figure to {args.out}")
 
 
 if __name__ == "__main__":

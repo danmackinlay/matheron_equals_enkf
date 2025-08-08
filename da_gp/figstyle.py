@@ -18,13 +18,17 @@
 
 import matplotlib.pyplot as plt
 
+from da_gp.logging_setup import get_logger
+
+logger = get_logger(__name__)
+
 # Publication-ready plot settings - JMLR 2001 style
 try:
     from tueplots import bundles
 
     plt.rcParams.update(bundles.jmlr2001(nrows=1, ncols=2))
 except ImportError:
-    print("Warning: tueplots not available, using fallback matplotlib settings")
+    logger.warning("tueplots not available, using fallback matplotlib settings")
     plt.rcParams.update(
         {
             "figure.figsize": (6.0, 3.0),  # JMLR-style figure size
