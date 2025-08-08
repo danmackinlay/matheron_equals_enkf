@@ -49,7 +49,7 @@ def task_setup_dirs():
             f"mkdir -p {DATA_DIR}",
         ],
         "targets": [str(FIGURES_DIR / ".gitkeep"), str(DATA_DIR / ".gitkeep")],
-        "uptodate": [True],  # Always run to ensure dirs exist
+        "uptodate": [False],  # Always run to ensure dirs exist
     }
 
 
@@ -58,7 +58,12 @@ def task_timing_obs_csv():
     csv_file = DATA_DIR / "timing_obs.csv"
     obs_args = " ".join(map(str, OBS_SWEEP))
     backends_args = " ".join(BACKENDS)
-    params = dict(obs_grid=OBS_SWEEP, backends=BACKENDS, repeats=REPEATS)
+    params = dict(
+        obs_sweep=OBS_SWEEP,
+        backends=BACKENDS,
+        repeats=REPEATS,
+        grid_size_fixed=2000,
+    )
 
     return {
         "actions": [
@@ -78,6 +83,7 @@ def task_timing_obs_csv():
         ],
         "verbosity": 2,
         "uptodate": [config_changed(params)],
+        "clean": True,
     }
 
 
@@ -86,7 +92,12 @@ def task_timing_dim_csv():
     csv_file = DATA_DIR / "timing_dim.csv"
     dim_args = " ".join(map(str, DIM_SWEEP))
     backends_args = " ".join(BACKENDS)
-    params = dict(obs_grid=OBS_SWEEP, backends=BACKENDS, repeats=REPEATS)
+    params = dict(
+        dim_sweep=DIM_SWEEP,
+        backends=BACKENDS,
+        repeats=REPEATS,
+        n_obs_fixed=1000,
+    )
 
     return {
         "actions": [
@@ -106,6 +117,7 @@ def task_timing_dim_csv():
         ],
         "verbosity": 2,
         "uptodate": [config_changed(params)],
+        "clean": True,
     }
 
 
@@ -133,6 +145,7 @@ def task_timing_vs_observations():
             "da_gp/figstyle.py",
         ],
         "task_dep": ["timing_obs_csv"],
+        "clean": True,
     }
 
 
@@ -152,6 +165,7 @@ def task_timing_vs_dimensions():
             "da_gp/figstyle.py",
         ],
         "task_dep": ["timing_dim_csv"],
+        "clean": True,
     }
 
 
@@ -172,6 +186,7 @@ def task_posterior_samples():
             "da_gp/figstyle.py",
         ],
         "task_dep": ["setup_dirs"],
+        "clean": True,
     }
 
 

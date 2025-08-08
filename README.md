@@ -41,7 +41,7 @@ from da_gp.src.gp_common import Problem
 
 problem = Problem(
     grid_size=1000,     # State dimension
-    n_obs=100,          # Number of observations  
+    n_obs=100,          # Number of observations
     noise_std=0.1,      # Observation noise
     rng=np.random.default_rng(42)  # Reproducible RNG
 )
@@ -55,7 +55,7 @@ problem = Problem(
 
 ### Benefits
 - **Import-order independent**: No need to set global state before importing backends
-- **Test isolation**: Each test uses fresh `Problem` instances  
+- **Test isolation**: Each test uses fresh `Problem` instances
 - **Easy scaling**: Straightforward to parallelize across processes
 - **Debuggable**: Clear data flow without hidden dependencies
 
@@ -97,7 +97,74 @@ latexmk -pdf main.tex
 
 ## Full Timing Benchmarking Workflow
 
-This is the complete workflow to reproduce the timing figures for the paper using the new internal timing system.
+### Incremental Development
+
+For development and debugging, you can run individual parts:
+
+```bash
+# View all available tasks
+doit list
+
+# Generate just the timing data
+doit timing_data
+
+# Generate just the figures
+doit figures
+
+# Run tests
+doit test
+
+# Clean specific parts
+doit clean_figures  # Remove generated plots
+doit clean_data     # Remove CSV files
+doit clean_latex    # Remove LaTeX aux files
+```
+
+## Benchmarks & Plots (doit)
+
+- CSVs and figures are auto-regenerated when sweep params or backends change.
+- We track these knobs: `OBS_SWEEP`, `DIM_SWEEP`, `BACKENDS`, `REPEATS`, and the fixed values (`n_obs_fixed`, `grid_size_fixed`).
+- If a sweep has only one unique value, the corresponding plot is skipped by design.
+
+### Typical workflow
+```bash
+uv run doit pdf             # build paper + generate/plot benchmarks as needed
+```
+
+### Clean vs force rebuild
+
+```bash
+uv run doit clean           # removes CSVs/figures/paper (tasks declare their own targets)
+uv run doit pdf             # full rebuild from scratch
+```
+
+### Got only sklearn curves?
+
+* Ensure DAPPER backends are installed and listed in `BACKENDS`.
+* Ensure sweeps have ≥2 values (e.g., `OBS_SWEEP=[100, 500, 1000]`).
+* You can smoke-test:
+
+  ```bash
+  uv run python da_gp/scripts/bench.py \
+    --n_obs_grid 50 100 --grid_size_fixed 2000 \
+    --backends sklearn dapper_enkf dapper_letkf \
+    --csv /tmp/check.csv --repeats 1
+  ```
+
+  Then:
+
+  ```bash
+  uv run python da_gp/scripts/plot_timing.py /tmp/check.csv --output-dir figures
+  ```
+
+### Legacy Manual Workflow (Deprecated)
+
+**⚠️ The manual commands below are deprecated. Use `doit pdf` instead for automated dependency management.**
+
+<details>
+<summary>Click to expand deprecated manual workflow</summary>
+
+The following manual workflow still works but requires manual dependency tracking:
 
 ```bash
 # Step 1: Generate comprehensive timing data (observation scaling)
@@ -124,7 +191,7 @@ uv run python da_gp/scripts/plot_timing.py data/timing_dim.csv --output-dir figu
 uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 
 # Output files used by main.tex:
-# - figures/timing_vs_observations.pdf  (NEW: fit + predict times vs # observations)  
+# - figures/timing_vs_observations.pdf  (NEW: fit + predict times vs # observations)
 # - figures/timing_vs_dimensions.pdf    (NEW: fit + predict times vs state dimension)
 # - figures/posterior_samples.pdf       (posterior comparison)
 ```
@@ -134,7 +201,7 @@ uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 The new timing system provides several advantages:
 
 1. **Separate fit and predict times**: Dual-curve plots show that GP training is O(m³) while EnKF prediction is effectively O(1) for fixed ensemble size
-2. **Internal timing**: Uses `time.perf_counter()` to eliminate Python startup and I/O overhead  
+2. **Internal timing**: Uses `time.perf_counter()` to eliminate Python startup and I/O overhead
 3. **Statistical robustness**: Includes warm-up runs and reports median of 5 timing repeats
 4. **Shared datasets**: All backends use identical synthetic data for fair comparison
 5. **Hardened plotting**: Validates data points, uses unified JMLR styling, supports color-blind friendly palettes
@@ -182,7 +249,7 @@ uv run python da_gp/scripts/bench.py \
 
 Key features:
 - **In-process timing**: Uses `time.perf_counter()` for precise measurement
-- **Warm-up runs**: First iteration discarded to eliminate cold-start effects  
+- **Warm-up runs**: First iteration discarded to eliminate cold-start effects
 - **Statistical robustness**: Median of multiple timing repeats (default: 5)
 - **Shared datasets**: Identical synthetic data across all backends for fair comparison
 
@@ -211,7 +278,7 @@ uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
 **Solution**: The codebase now uses a **functional architecture** that completely eliminates these errors:
 
 - All functions are **side-effect-free** and receive explicit `Problem` arguments
-- No global state means no import-order dependencies  
+- No global state means no import-order dependencies
 - Each experiment uses fresh, immutable `Problem` instances
 
 **Modern usage** (no global state):
@@ -236,7 +303,7 @@ These errors are **prevented by design** in the current functional implementatio
 
 **Cause**: Usually indicates shape mismatches or backend configuration issues.
 
-**Solution**: 
+**Solution**:
 1. Run with verbose logging: `python -m da_gp.scripts.bench --backends sklearn --n_obs_grid 50 100 --csv test.csv` and check logs
 2. Test individual backends first: `da-gp --backend sklearn --n_obs 100 --verbose`
 3. For DAPPER backends, ensure proper environment setup
