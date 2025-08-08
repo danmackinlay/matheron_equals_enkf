@@ -23,7 +23,7 @@ from typing import Any
 
 import numpy as np
 
-from da_gp.logging_setup import setup_logging, get_logger
+from da_gp.logging_setup import get_logger, setup_logging
 
 logger = get_logger(__name__)
 
@@ -94,7 +94,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Data Assimilation vs Gaussian Process benchmark"
     )
-    
+
     # Logging arguments
     parser.add_argument(
         "--log-level",
@@ -107,7 +107,7 @@ def main() -> None:
         action="store_true",
         help="Use JSON formatting for logs",
     )
-    
+
     parser.add_argument(
         "--backend",
         choices=["sklearn", "dapper_enkf", "dapper_letkf"],

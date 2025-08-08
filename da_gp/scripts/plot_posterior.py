@@ -25,8 +25,8 @@ import numpy as np
 
 # Import unified styling
 from da_gp.figstyle import setup_figure_style
+from da_gp.logging_setup import get_logger, setup_logging
 from da_gp.src.gp_common import Problem, generate_experiment_data
-from da_gp.logging_setup import setup_logging, get_logger
 
 logger = get_logger(__name__)
 
@@ -64,7 +64,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate posterior plots with dual-backend comparison"
     )
-    
+
     # Logging arguments
     parser.add_argument(
         "--log-level",
@@ -77,7 +77,7 @@ def main():
         action="store_true",
         help="Use JSON formatting for logs",
     )
-    
+
     parser.add_argument(
         "--backends",
         nargs="+",

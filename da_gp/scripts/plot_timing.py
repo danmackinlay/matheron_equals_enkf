@@ -25,7 +25,7 @@ import pandas as pd
 
 # Import unified figure styling
 from da_gp.figstyle import setup_figure_style
-from da_gp.logging_setup import setup_logging, get_logger
+from da_gp.logging_setup import get_logger, setup_logging
 
 logger = get_logger(__name__)
 
@@ -34,28 +34,36 @@ def _choose_sweep(df: pd.DataFrame, sweep: str):
     """Choose sweep parameters and filter data."""
     if sweep == "obs":
         return "n_obs", "observations (m)", "n_obs", "", df
-    elif sweep == "dim":
+    if sweep == "dim":
         return "grid_size", "state dimension (d)", "grid_size", "", df
-    elif sweep == "auto":
+    if sweep == "auto":
         # Auto-detect based on data variation
         n_obs_unique = df["n_obs"].nunique()
         grid_size_unique = df["grid_size"].nunique()
 
         if n_obs_unique > 1 and grid_size_unique == 1:
             return "n_obs", "observations (m)", "n_obs", "", df
-        elif grid_size_unique > 1 and n_obs_unique == 1:
+        if grid_size_unique > 1 and n_obs_unique == 1:
             return "grid_size", "state dimension (d)", "grid_size", "", df
-        else:
-            # Fallback - use n_obs if both vary or neither vary
-            logger.warning(
-                f"Ambiguous sweep type (n_obs unique: {n_obs_unique}, grid_size unique: {grid_size_unique}), defaulting to n_obs"
-            )
-            return "n_obs", "observations (m)", "n_obs", "", df
-    else:
-        raise ValueError(f"Invalid sweep mode: {sweep}. Must be 'obs', 'dim', or 'auto'")
+        # Fallback - use n_obs if both vary or neither vary
+        logger.warning(
+            f"Ambiguous sweep type (n_obs unique: {n_obs_unique}, grid_size unique: {grid_size_unique}), defaulting to n_obs"
+        )
+        return "n_obs", "observations (m)", "n_obs", "", df
+    raise ValueError(
+        f"Invalid sweep mode: {sweep}. Must be 'obs', 'dim', or 'auto'"
+    )
 
 
-def _draw_axis(ax, df: pd.DataFrame, x_col: str, y_col: str, backend_styles: dict, sort_col: str, show_legend: bool):
+def _draw_axis(
+    ax,
+    df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    backend_styles: dict,
+    sort_col: str,
+    show_legend: bool,
+):
     """Draw plotting lines for a single axis."""
     for backend, style in backend_styles.items():
         backend_data = df[df["backend"] == backend]
@@ -146,14 +154,24 @@ def plot_timing(
     ax_fit.set_xlabel(x_label)
     ax_fit.set_ylabel("wall-clock time [s]")
 
-    _draw_axis(ax_fit, filtered_df, x_col, "fit_time", backend_styles, sort_col, show_legend)
+    _draw_axis(
+        ax_fit, filtered_df, x_col, "fit_time", backend_styles, sort_col, show_legend
+    )
 
     # Plot predict times (right subplot)
     ax_pred.set_title(f"Prediction Time{fixed_label_suffix}")
     ax_pred.set_xlabel(x_label)
     ax_pred.set_ylabel("wall-clock time [s]")
 
-    _draw_axis(ax_pred, filtered_df, x_col, "predict_time", backend_styles, sort_col, show_legend)
+    _draw_axis(
+        ax_pred,
+        filtered_df,
+        x_col,
+        "predict_time",
+        backend_styles,
+        sort_col,
+        show_legend,
+    )
 
     # Adjust layout and save
     plt.tight_layout()
@@ -210,7 +228,7 @@ def plot_dimension_scaling(
 def main():
     """Main plotting script."""
     parser = argparse.ArgumentParser(description="Generate timing comparison plots")
-    
+
     # Logging arguments
     parser.add_argument(
         "--log-level",
@@ -223,7 +241,7 @@ def main():
         action="store_true",
         help="Use JSON formatting for logs",
     )
-    
+
     parser.add_argument("csv_file", help="CSV file containing benchmark timing data")
     parser.add_argument(
         "--output-dir",

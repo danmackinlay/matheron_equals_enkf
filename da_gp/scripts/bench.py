@@ -27,8 +27,8 @@ from typing import NamedTuple
 import numpy as np
 import pandas as pd
 
+from da_gp.logging_setup import get_logger, setup_logging
 from da_gp.src.gp_common import Problem, generate_experiment_data
-from da_gp.logging_setup import setup_logging, get_logger
 
 logger = get_logger(__name__)
 
@@ -396,7 +396,9 @@ def main():
         if len(backend_results) > 0:
             logger.info(f"{backend}:")
             logger.info(f"  Mean fit time: {backend_results['fit_time'].mean():.3f}s")
-            logger.info(f"  Mean predict time: {backend_results['predict_time'].mean():.3f}s")
+            logger.info(
+                f"  Mean predict time: {backend_results['predict_time'].mean():.3f}s"
+            )
             logger.info(f"  Mean RMSE: {backend_results['rmse'].mean():.4f}")
             logger.info("")
 
