@@ -41,7 +41,7 @@ from da_gp.src.gp_common import Problem
 
 problem = Problem(
     grid_size=1000,     # State dimension
-    n_obs=100,          # Number of observations  
+    n_obs=100,          # Number of observations
     noise_std=0.1,      # Observation noise
     rng=np.random.default_rng(42)  # Reproducible RNG
 )
@@ -55,7 +55,7 @@ problem = Problem(
 
 ### Benefits
 - **Import-order independent**: No need to set global state before importing backends
-- **Test isolation**: Each test uses fresh `Problem` instances  
+- **Test isolation**: Each test uses fresh `Problem` instances
 - **Easy scaling**: Straightforward to parallelize across processes
 - **Debuggable**: Clear data flow without hidden dependencies
 
@@ -88,13 +88,11 @@ Generate all benchmarks, figures, and the final PDF with a single command:
 
 ```bash
 doit pdf   # Complete pipeline: benchmarks → figures → main.pdf
-# OR use make syntax:
-make pdf   # Equivalent convenience wrapper
 ```
 
 This automatically handles all dependencies and builds everything needed for the paper. Rerun `doit pdf` after making edits; only stale steps will rebuild thanks to intelligent dependency tracking.
 
-Use `doit clean` (or `make clean`) to force a full rebuild from scratch.
+Use `doit clean` to force a full rebuild from scratch.
 
 ### Incremental Development
 
@@ -107,7 +105,7 @@ doit list
 # Generate just the timing data
 doit timing_data
 
-# Generate just the figures  
+# Generate just the figures
 doit figures
 
 # Run tests
@@ -186,7 +184,7 @@ uv run python da_gp/scripts/bench.py \
 uv run python da_gp/scripts/plot_timing.py data/timing_obs.csv --output-dir figures
 uv run python da_gp/scripts/plot_timing.py data/timing_dim.csv --output-dir figures
 
-# Step 4: Generate the posterior comparison plot  
+# Step 4: Generate the posterior comparison plot
 uv run python da_gp/scripts/plot_posterior.py --n_obs 50
 
 # Step 5: Build the paper
@@ -195,7 +193,7 @@ latexmk -pdf main.tex
 
 Output files used by main.tex:
 - `figures/timing_vs_observations.pdf` (fit + predict times vs # observations)
-- `figures/timing_vs_dimensions.pdf` (fit + predict times vs state dimension)  
+- `figures/timing_vs_dimensions.pdf` (fit + predict times vs state dimension)
 - `figures/posterior_samples.pdf` (posterior comparison across all methods)
 
 </details>
@@ -223,7 +221,7 @@ LOG_LEVEL=INFO uv run doit pdf
 The new timing system provides several advantages:
 
 1. **Separate fit and predict times**: Dual-curve plots show that GP training is O(m³) while EnKF prediction is effectively O(1) for fixed ensemble size
-2. **Internal timing**: Uses `time.perf_counter()` to eliminate Python startup and I/O overhead  
+2. **Internal timing**: Uses `time.perf_counter()` to eliminate Python startup and I/O overhead
 3. **Statistical robustness**: Includes warm-up runs and reports median of 5 timing repeats
 4. **Shared datasets**: All backends use identical synthetic data for fair comparison
 5. **Dual figure workflow**: Two separate CSVs generate two complementary timing plots:
@@ -275,7 +273,7 @@ uv run python da_gp/scripts/bench.py \
 
 Key features:
 - **In-process timing**: Uses `time.perf_counter()` for precise measurement
-- **Warm-up runs**: First iteration discarded to eliminate cold-start effects  
+- **Warm-up runs**: First iteration discarded to eliminate cold-start effects
 - **Statistical robustness**: Median of multiple timing repeats (default: 5)
 - **Shared datasets**: Identical synthetic data across all backends for fair comparison
 
@@ -304,7 +302,7 @@ uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
 **Solution**: The codebase now uses a **functional architecture** that completely eliminates these errors:
 
 - All functions are **side-effect-free** and receive explicit `Problem` arguments
-- No global state means no import-order dependencies  
+- No global state means no import-order dependencies
 - Each experiment uses fresh, immutable `Problem` instances
 
 **Modern usage** (no global state):
@@ -329,7 +327,7 @@ These errors are **prevented by design** in the current functional implementatio
 
 **Cause**: Usually indicates shape mismatches or backend configuration issues.
 
-**Solution**: 
+**Solution**:
 1. Run with verbose logging: `python -m da_gp.scripts.bench --backends sklearn --n_obs_grid 50 100 --csv test.csv` and check logs
 2. Test individual backends first: `da-gp --backend sklearn --n_obs 100 --verbose`
 3. For DAPPER backends, ensure proper environment setup
