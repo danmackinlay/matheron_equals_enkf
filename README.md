@@ -79,23 +79,11 @@ uv run pytest da_gp/tests/
 This provides a minimal, end-to-end workflow to generate a result.
 
 ```bash
-# 1. Generate timing data with internal benchmarking (NEW: separate fit/predict times)
-uv run python da_gp/scripts/bench.py \
-    --n_obs_grid 100 500 --grid_size_fixed 1000 \
-    --backends sklearn dapper_enkf dapper_letkf --csv data/timing_quick.csv
-
-# 2. Create dual-curve timing plots showing fit vs predict times (NEW)
-uv run python da_gp/scripts/plot_timing.py data/timing_quick.csv --output-dir figures
-
-# 3. Generate a posterior plot showing all three backends
-uv run python da_gp/scripts/plot_posterior.py --n_obs 50
-
-# 4. Build the paper
-latexmk -pdf main.tex
+doit pdf   # Complete pipeline: benchmarks → figures → main.pdf
 ```
 
 
-## Full Timing Benchmarking Workflow
+Use `doit clean` to force a full rebuild from scratch.
 
 ### Incremental Development
 
