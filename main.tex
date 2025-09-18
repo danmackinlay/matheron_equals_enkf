@@ -424,9 +424,10 @@ We report \textbf{median fit and predict times} obtained with our in-process tim
 \figureref{fig:posterior-samples} shows posterior draws from all three methods using squared-exponential basis functions matched to the generating process (the ``true prior'' setting). We see similar RMSE for the mean estimate between the methods, with a slightly overconfident posterior uncertainty in the ensemble methods.
 
 \paragraph{Speed.}
-Figure~\ref{fig:timing-curves} shows separate \textbf{training} and \textbf{prediction} times.
-Training with \textsc{scikit-learn} scales cubically in observation count $m$; prediction scales quadratically, but still rises steeply for large $m$.
-In contrast, EnKF and LETKF training scale linearly in ensemble size and prediction is effectively $O(1)$ for fixed observation count, yielding two nearly flat curves. As the problem size scales beyond feasibility of GP regression, we expect to achieve efficiency gains by adopting mature DA techniques.
+Figure~\ref{fig:timing-curves} reports \textbf{fit} (training) and \textbf{predict} times as we sweep (top) the number of observations $m$ at fixed state dimension $d$, and (bottom) the state dimension $d$ at fixed $m$.
+The exact GP (scikit-learn) shows the expected $\mathcal{O}(m^3)$ fit scaling. Its predict time for mean-only scales as $\mathcal{O}(d \cdot m)$.
+In contrast, EnKF and LETKF fits scale roughly \textbf{linearly} in $m$ for fixed ensemble size $N$ (and linearly in $d$ with localization), while prediction is \textbf{linear in $d$} to read out the analysis mean.
+Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter predict-vs-$d$ curves than the exact GP, and as $m$ grows at fixed $d$, DA fits avoid the cubic blow-up of exact GP regression.
 
 \begin{figure}[htbp]
   \floatconts
