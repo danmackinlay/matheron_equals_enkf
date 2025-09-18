@@ -453,7 +453,7 @@ The exact GP (scikit-learn) shows the expected $\mathcal O(m^3)$ fit scaling.
 Its predict time grows with $d$ and $m$—mean-only scales as $\mathcal O(d\,m)$, while computing both mean and standard deviation (our default) scales as $\mathcal O(d\,m^2)$.
 In contrast, EnKF and LETKF fits scale roughly linearly in $m$ for fixed ensemble size $N$ (and linearly in $d$ with localization), while prediction is linear in $d$ to read out the analysis mean (and $\mathcal O(Nd)$ if we also materialize an ensemble).
 We do not vary $N$ in these plots.
-Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter predict‑vs‑$d$ curves than the exact GP, and as $m$ grows at fixed $d$, DA fits avoid the cubic blow‑up of exact GP regression.
+Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter predict-vs-$d$ curves than the exact GP, and as $m$ grows at fixed $d$, DA fits avoid the cubic blow-up of exact GP regression.
 
 \begin{figure}
   \centering
@@ -475,7 +475,6 @@ Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter pred
 The results confirm that a standard EnKF is a computationally equivalent method for path-wise GP sampling. More importantly, the equivalence acts as a bridge to a rich ecosystem of data assimilation techniques.
 The LETKF demonstrates this: by simply changing one line of code to invoke a localized filter, we gain access to a highly scalable inference method that parallels sparse or domain-decomposition approaches in the GP literature. This opens the door for the GP community to leverage decades of mature, practical DA engineering ``for free.''
 
-
 \section{Conclusion and Implications}
 
 The affine residual identity is a Rosetta stone linking kriging, optimal-interpolation, ensemble-Kalman, and path-wise GP sampling. This synthesis upgrades each field: geoscientists inherit differentiable, variational, and sparse-GP tools; machine-learning researchers gain decades of localisation, inflation, and convergence theory; and inverse-problem analysts get a unifying algebra that bridges finite-ensemble and infinite-dimensional limits.
@@ -493,9 +492,7 @@ The original of this content was drafted by human hands, with the exception of t
 
 \subsubsection{\ackname}
 
-An LLM was used to 1) translate an initial draft from markdown 2) propose copy edits to the document and 3) to generate the initial code scaffolding for the experiments.
-
-Removed for anonymous review.
+An LLM was used to 1) translate an initial draft from markdown 2) propose copy edits to the document and 3) to generate the code scaffolding for the experiments.
 
 \subsubsection{\discintname}
 The author has no competing interests to declare that are
