@@ -14,7 +14,6 @@ dependencies = [
     "numpy",
     "scikit-learn",
     "matplotlib",
-    "netcdf4",
     "pandas>=2.3.1",
     "dapper>=1.7,<2",
     "tueplots>=0.2.1",
