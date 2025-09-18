@@ -447,10 +447,13 @@ We report \textbf{median fit and predict times} obtained with our in-process tim
 Figure~\ref{fig:posterior-samples} shows posterior draws from all three methods using squared-exponential basis functions matched to the generating process (the ``true prior'' setting). We see similar RMSE for the mean estimate between the methods, with a slightly overconfident posterior uncertainty in the ensemble methods.
 
 \paragraph{Speed.}
-Figure~\ref{fig:timing-curves} reports \textbf{fit} (training) and \textbf{predict} times as we sweep (top) the number of observations $m$ at fixed state dimension $d$, and (bottom) the state dimension $d$ at fixed $m$.
-The exact GP (scikit-learn) shows the expected $\mathcal{O}(m^3)$ fit scaling. Its predict time for mean-only scales as $\mathcal{O}(d \cdot m)$.
-In contrast, EnKF and LETKF fits scale roughly \textbf{linearly} in $m$ for fixed ensemble size $N$ (and linearly in $d$ with localization), while prediction is \textbf{linear in $d$} to read out the analysis mean.
-Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter predict-vs-$d$ curves than the exact GP, and as $m$ grows at fixed $d$, DA fits avoid the cubic blow-up of exact GP regression.
+
+Figure~\ref{fig:timing-curves} reports fit (training) and predict times as we sweep (top) the number of observations $m$ at fixed state dimension $d$, and (bottom) the state dimension $d$ at fixed $m$.
+The exact GP (scikit-learn) shows the expected $\mathcal O(m^3)$ fit scaling.
+Its predict time grows with $d$ and $m$—mean-only scales as $\mathcal O(d\,m)$, while computing both mean and standard deviation (our default) scales as $\mathcal O(d\,m^2)$.
+In contrast, EnKF and LETKF fits scale roughly linearly in $m$ for fixed ensemble size $N$ (and linearly in $d$ with localization), while prediction is linear in $d$ to read out the analysis mean (and $\mathcal O(Nd)$ if we also materialize an ensemble).
+We do not vary $N$ in these plots.
+Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter predict‑vs‑$d$ curves than the exact GP, and as $m$ grows at fixed $d$, DA fits avoid the cubic blow‑up of exact GP regression.
 
 \begin{figure}
   \centering
@@ -463,9 +466,8 @@ Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter pred
   \centering
   \includegraphics[width=\linewidth]{timing_vs_observations.pdf}\par\vspace{1ex}
     \includegraphics[width=\linewidth]{timing_vs_dimensions.pdf}%
-    \caption{Fit (solid) vs.\ predict (dashed) wall times.
-      Top: scaling with observations \(m\).
-    Bottom: scaling with state dimension \(d\).}
+    \caption{Wall-clock timings for training and prediction with ensemble and classical GP regression.}
+    \label{fig:timing-curves}
 \end{figure}
 
 
