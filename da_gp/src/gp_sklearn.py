@@ -61,10 +61,13 @@ def run(
     gp.fit(X_obs, obs)
     fit_time = time.perf_counter() - start_time
 
-    # Predict at all grid points
+    # Predict at all grid points: time mean-only for fair comparison with DA
     start_time = time.perf_counter()
-    posterior_mean, posterior_std = gp.predict(X_grid, return_std=True)
+    posterior_mean = gp.predict(X_grid, return_std=False)
     predict_time = time.perf_counter() - start_time
+
+    # Get std separately (untimed) for sampling
+    posterior_mean_full, posterior_std = gp.predict(X_grid, return_std=True)
 
     # Sample from posterior (approximate) using problem's RNG
     n_samples = kwargs.get("n_ens", 40)

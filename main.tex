@@ -93,9 +93,6 @@
 \newcommand{\one}{\mathbbold{1}}
 
 
-
-% Removed jmlrproceedings - not needed for llncs class
-
 % Title (the optional short title is used for headers)
 \title{The Ensemble Kalman Update is an Empirical Matheron Update}
 %
@@ -139,28 +136,27 @@ The Ensemble Kalman Filter (EnKF) is a widely used method for data assimilation 
 This paper provides a compact introduction to this simple but under-exploited connection, with necessary definitions accessible to all fields involved.
 
 Source code is available at \url{https://github.com/danmackinlay/paper_matheron_equals_enkf}.
-\end{abstract}
 
 \keywords{Ensemble Kalman Filter \and Matheron Update \and Gaussian Process \and Data Assimilation \and Geostatistics}
 \end{abstract}
 
 \section{Introduction}
 
-The Ensemble Kalman Filter (EnKF)~\citep{Evensen2003Ensemble,Evensen2009Data} is a cornerstone method that evolves ensembles of state vectors through model dynamics and updates them using observational data. The Matheron update provides a sample-based method for conditioning Gaussian random variables on observations~\citep{Doucet2010Note,Wilson2020Efficiently,Wilson2021Pathwise}, well-established in geostatistics but with little-known connections to ensemble data assimilation.
+The Ensemble Kalman Filter (EnKF)~\cite{Evensen2003Ensemble,Evensen2009Data} is a cornerstone method that evolves ensembles of state vectors through model dynamics and updates them using observational data. The Matheron update provides a sample-based method for conditioning Gaussian random variables on observations~\cite{Doucet2010Note,Wilson2020Efficiently,Wilson2021Pathwise}, well-established in geostatistics but with little-known connections to ensemble data assimilation.
 
 We establish that the ensemble update step in the EnKF is equivalent to an empirical Matheron update by putting them on a common probabilistic footing. This connection provides an alternative foundation for the EnKF and suggests improvements by leveraging computational optimizations from both communities.
 
 \subsection{Historical Context and Related Work}\label{sec:history}
 
-Although the affine residual update first appeared in geostatistics under the banner of \emph{conditioning by kriging}~\citep{Chiles2018Fifty}, it was rediscovered many times:
+Although the affine residual update first appeared in geostatistics under the banner of \emph{conditioning by kriging}~\cite{Chiles2018Fifty}, it was rediscovered many times:
 \begin{itemize}
     \item \textbf{Optimal interpolation (OI).}  Early numerical-weather-prediction (NWP) systems wrote the analysis as
-    $x_a = x_b + K(y - Hx_b)$ with a climatological Kalman gain; this is exactly the Matheron rule with fixed covariances~\citep{Hunt2007Efficient}.
-    \item \textbf{Stochastic EnKF.}  \citet{Evensen2003Ensemble} replaced the static climatological covariances of OI with an empirical ensemble, creating the now-ubiquitous EnKF.
-    \item \textbf{Fast conditional simulation.}  \citet{Doucet2010Note} noticed that one can obtain conditional Gaussian draws \emph{without} a Cholesky factorisation by adding a linear residual—again the same formula.
-    \item \textbf{Pathwise GP sampling.}  The machine-learning community re-invented the idea as \emph{path-wise conditioning} for scalable Gaussian-process (GP) posterior draws~\citep{Wilson2020Efficiently,Wilson2021Pathwise,Borovitskiy2023Matern}.
-    \item \textbf{Reservoir inversion and EnRML.}  Iterative ensemble smoothers such as EnRML exploit the very same affine map in the context of PDE-constrained Bayesian inversion~\citep{Chen2012Ensemble}.
-    \item \textbf{Theory of ensemble inversion.}  Convergence proofs for ensemble inversion~\citep{Schillings2017Analysis} and extensions via transport maps~\citep{Spantini2022Coupling} all start from the linear Matheron/EnKF identity.
+    $x_a = x_b + K(y - Hx_b)$ with a climatological Kalman gain; this is exactly the Matheron rule with fixed covariances~\cite{Hunt2007Efficient}.
+    \item \textbf{Stochastic EnKF.}  \cite{Evensen2003Ensemble} replaced the static climatological covariances of OI with an empirical ensemble, creating the now-ubiquitous EnKF.
+    \item \textbf{Fast conditional simulation.}  \cite{Doucet2010Note} noticed that one can obtain conditional Gaussian draws \emph{without} a Cholesky factorisation by adding a linear residual—again the same formula.
+    \item \textbf{Pathwise GP sampling.}  The machine-learning community re-invented the idea as \emph{path-wise conditioning} for scalable Gaussian-process (GP) posterior draws~\cite{Wilson2020Efficiently,Wilson2021Pathwise,Borovitskiy2023Matern}.
+    \item \textbf{Reservoir inversion and EnRML.}  Iterative ensemble smoothers such as EnRML exploit the very same affine map in the context of PDE-constrained Bayesian inversion~\cite{Chen2012Ensemble}.
+    \item \textbf{Theory of ensemble inversion.}  Convergence proofs for ensemble inversion~\cite{Schillings2017Analysis} and extensions via transport maps~\cite{Spantini2022Coupling} all start from the linear Matheron/EnKF identity.
 \end{itemize}
 
 This equivalence forms the algebraic core of at least six research communities, turning a patchwork of field-specific heuristics into transferable technology.
@@ -228,7 +224,7 @@ Since $\Law\left\{\vrv{x} \gvn \vrv{y} {=} \vv{y}^*\right\}$ and
 $\Normal(\vv{m}_{\vrv{x}\gvn\vrv{y}}, \mm{C}_{\vrv{x}\gvn\vrv{y}})$ are Gaussian distributions with the same moments, they define the same distribution.
 \end{proof}
 
-This \emph{pathwise} approach to conditioning Gaussian variates has gained currency in machine learning as a tool for sampling and inference in Gaussian processes \citep{Wilson2020Efficiently,Wilson2021Pathwise}, notably in generalising to challenging domains such as Riemannian manifolds~\citep{Borovitskiy2023Matern}.
+This \emph{pathwise} approach to conditioning Gaussian variates has gained currency in machine learning as a tool for sampling and inference in Gaussian processes \cite{Wilson2020Efficiently,Wilson2021Pathwise}, notably in generalising to challenging domains such as Riemannian manifolds~\cite{Borovitskiy2023Matern}.
 
 \section{Kalman Filter}
 We begin by recalling that in state filtering the goal is to update our estimate of the system state when a new observation becomes available. In a general filtering problem the objective is to form the posterior distribution \(\Law[\vrv{x}_{t+1} \gvn \vrv{x}_t, \vv{y}^*]\) from the prior \(\Law[\vrv{x}_{t+1} \gvn \vrv{x}_t]\) by incorporating the new information in the observation \(\vv{y}^*\).
@@ -367,7 +363,7 @@ where \(\rho^2\mm{I}_{D_{\vrv{y}}}\) is the observation error covariance matrix.
 The term
 \(\upsilon^2\mm{I}_{D_{\vrv{y}}}\) comes from the regularization of the empirical observation covariance (as defined by the ensemble of
 \(\mm{Y}\)), while \(\rho^2\mm{I}_{D_{\vrv{y}}}\) represents the known covariance of the observation noise.
-Combining these two gives the effective covariance in the observation space.\footnote{The EnKF extends to nonlinear observation operators, though Gaussian assumptions no longer hold exactly~\citep{Evensen2009Data}.}
+Combining these two gives the effective covariance in the observation space.\footnote{The EnKF extends to nonlinear observation operators, though Gaussian assumptions no longer hold exactly~\cite{Evensen2009Data}.}
 
 For compactness we define \(\gamma^2 \coloneq \upsilon^2 + \rho^2\) so that the combined covariance is \(\mm{C}_{\vrv{yy}} = \mmdev{Y} \mmdev{Y}^\top + \gamma^2\mm{I}_{D_{\vrv{y}}}\).
 We also define
@@ -403,19 +399,19 @@ The EnKF avoids computing full covariance matrices, instead using empirical ense
 \section{Capabilities Unlocked by the Equivalence}\label{sec:capabilities}
 
 \paragraph{(i) Linear-time GP sample paths.}
-EnKF algebra lets us compute the Matheron update with $\mathcal O(N^2d)$ cost—or $\mathcal O(Nd)$ with localisation—rather than $\mathcal O(d^{3})$ Cholesky factorizations, enabling multi-million-point GP draws~\citep{Wilson2020Efficiently,Hunt2007Efficient}.
+EnKF algebra lets us compute the Matheron update with $\mathcal O(N^2d)$ cost—or $\mathcal O(Nd)$ with localisation—rather than $\mathcal O(d^{3})$ Cholesky factorizations, enabling multi-million-point GP draws~\cite{Wilson2020Efficiently,Hunt2007Efficient}.
 
 \paragraph{(ii) Streaming and hyper-parameter learning.}
-Joint-state augmentation in EnKF permits on-line estimation of GP length-scales and noise variances~\citep{Kuzin2018Ensemble}, giving real-time Bayesian regression as data arrive.
+Joint-state augmentation in EnKF permits on-line estimation of GP length-scales and noise variances~\cite{Kuzin2018Ensemble}, giving real-time Bayesian regression as data arrive.
 
 \paragraph{(iii) Differentiable data-assimilation layers.}
-Because the affine map is a re-parameterisation, the complete update is compatible with auto-differentiation.  One can embed an EnKF/Matheron block inside a neural network and back-propagate end-to-end, an approach already explored in differentiable simulators~\citep{Spantini2022Coupling,Schillings2017Analysis}.
+Because the affine map is a re-parameterisation, the complete update is compatible with auto-differentiation.  One can embed an EnKF/Matheron block inside a neural network and back-propagate end-to-end, an approach already explored in differentiable simulators~\cite{Spantini2022Coupling,Schillings2017Analysis}.
 
 \paragraph{(iv) Sparse covariance structure via localisation.}
-Local ensemble transform Kalman filters (LETKF) taper covariances in physical space, yielding block-banded precisions that transfer verbatim to spatial or graph-based GPs~\citep{Hunt2007Efficient}.
+Local ensemble transform Kalman filters (LETKF) taper covariances in physical space, yielding block-banded precisions that transfer verbatim to spatial or graph-based GPs~\cite{Hunt2007Efficient}.
 
 \paragraph{(v) Rigorous error bounds.}
-Inverse-problem analyses prove contraction and bias properties of finite-ensemble EnKF~\citep{Schillings2017Analysis}; those proofs now bound the error of path-wise GP samplers for free.
+Inverse-problem analyses prove contraction and bias properties of finite-ensemble EnKF~\cite{Schillings2017Analysis}; those proofs now bound the error of path-wise GP samplers for free.
 
 \paragraph{Take-away.}
 Treating EnKF analysis as an empirical Matheron  brings mature geophysical tool-kits—localisation, adaptive inflation, square-root variants—into scalable machine-learning while exporting automatic differentiation and sparse GP tricks back to data assimilation.
@@ -425,7 +421,7 @@ Treating EnKF analysis as an empirical Matheron  brings mature geophysical tool-
 \label{sec:numerical-demo}
 % ----------------------------------------------------------------
 
-We revisit the classic 1D kriging problem to demonstrate both the direct equivalence of the EnKF update to GP regression and the power of extending this link. We compare three solvers side-by-side: a standard GP implementation, its equivalent EnKF formulation, and the Local Ensemble Transform Kalman Filter (LETKF)~\citep{Bocquet2020Online,Hunt2007Efficient}, a popular data assimilation variant that introduces covariance localization. This illustrates how mature geophysical tools can be immediately repurposed for scalable GP inference. Code is available in the supplement.
+We revisit the classic 1D kriging problem to demonstrate both the direct equivalence of the EnKF update to GP regression and the power of extending this link. We compare three solvers side-by-side: a standard GP implementation, its equivalent EnKF formulation, and the Local Ensemble Transform Kalman Filter (LETKF)~\cite{Bocquet2020Online,Hunt2007Efficient}, a popular data assimilation variant that introduces covariance localization. This illustrates how mature geophysical tools can be immediately repurposed for scalable GP inference. Code is available in the supplement.
 We note that the Ensemble Kalman solvers used here are chosen for ease of implementation rather than efficiency of performance, and so we do not expect to see massive performance gains on these small problems.
 \begin{quote}
 \textbf{Task.}  Recover a latent field
@@ -441,36 +437,35 @@ We test grid sizes $d\in\{200,400,600,800\}$.
 \paragraph{Methods.}
 \begin{itemize}
     \item \textbf{GP Regression:} The exact posterior computed via \texttt{GaussianProcessRegressor} from \textsc{scikit-learn}. This serves as our ground truth and scales as $\mathcal{O}(m^3)$ with observations.
-    \item \textbf{EnKF:} An implementation of the standard Ensemble Kalman Filter using DAPPER~\citep{Raanes2024DAPPER}. It is the direct, empirical equivalent of the Matheron update and is expected to be computationally cheaper than the exact GP.
-    \item \textbf{LETKF:} The Local Ensemble Transform Kalman Filter \citep{Hunt2007Efficient,Bocquet2020Online}, also implemented in DAPPER. This method introduces localization, where each state variable is updated using only a subset of nearby observations. This is a common technique in data assimilation for improving accuracy in high-dimensional systems.
+    \item \textbf{EnKF:} An implementation of the standard Ensemble Kalman Filter using DAPPER~\cite{Raanes2024DAPPER}. It is the direct, empirical equivalent of the Matheron update and is expected to be computationally cheaper than the exact GP.
+    \item \textbf{LETKF:} The Local Ensemble Transform Kalman Filter \cite{Hunt2007Efficient,Bocquet2020Online}, also implemented in DAPPER. This method introduces localization, where each state variable is updated using only a subset of nearby observations. This is a common technique in data assimilation for improving accuracy in high-dimensional systems.
 \end{itemize}
 
 We report \textbf{median fit and predict times} obtained with our in-process timer over multiple runs to ensure statistical robustness.
 
 \paragraph{Accuracy.}
-\figureref{fig:posterior-samples} shows posterior draws from all three methods using squared-exponential basis functions matched to the generating process (the ``true prior'' setting). We see similar RMSE for the mean estimate between the methods, with a slightly overconfident posterior uncertainty in the ensemble methods.
+Figure~\ref{fig:posterior-samples} shows posterior draws from all three methods using squared-exponential basis functions matched to the generating process (the ``true prior'' setting). We see similar RMSE for the mean estimate between the methods, with a slightly overconfident posterior uncertainty in the ensemble methods.
 
 \paragraph{Speed.}
-Figure~\ref{fig:timing-curves} shows separate \textbf{training} and \textbf{prediction} times.
-Training with \textsc{scikit-learn} scales cubically in observation count $m$; prediction scales quadratically, but still rises steeply for large $m$.
-In contrast, EnKF and LETKF training scale linearly in ensemble size and prediction is effectively $O(1)$ for fixed observation count, yielding two nearly flat curves. As the problem size scales beyond feasibility of GP regression, we expect to achieve efficiency gains by adopting mature DA techniques.
+Figure~\ref{fig:timing-curves} reports \textbf{fit} (training) and \textbf{predict} times as we sweep (top) the number of observations $m$ at fixed state dimension $d$, and (bottom) the state dimension $d$ at fixed $m$.
+The exact GP (scikit-learn) shows the expected $\mathcal{O}(m^3)$ fit scaling. Its predict time for mean-only scales as $\mathcal{O}(d \cdot m)$.
+In contrast, EnKF and LETKF fits scale roughly \textbf{linearly} in $m$ for fixed ensemble size $N$ (and linearly in $d$ with localization), while prediction is \textbf{linear in $d$} to read out the analysis mean.
+Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter predict-vs-$d$ curves than the exact GP, and as $m$ grows at fixed $d$, DA fits avoid the cubic blow-up of exact GP regression.
 
 \begin{figure}
   \centering
-  \includegraphics[width=\linewidth]{fig_posterior_samples.pdf}
+  \includegraphics[width=\linewidth]{posterior_samples.pdf}
   \caption{Posterior draws from the exact GP (sklearn), EnKF, and LETKF.}
   \label{fig:posterior-samples}
 \end{figure}
 
 \begin{figure}[t]
-  \floatconts {fig:timing-curves}%
-    {\caption{Fit (solid) vs.\ predict (dashed) wall times.
-      Top: scaling with observations \(m\).
-      Bottom: scaling with state dimension \(d\).}}%
-  {%
-    \includegraphics[width=\linewidth]{timing_vs_observations.pdf}\par\vspace{1ex}
+  \centering
+  \includegraphics[width=\linewidth]{timing_vs_observations.pdf}\par\vspace{1ex}
     \includegraphics[width=\linewidth]{timing_vs_dimensions.pdf}%
-  }
+    \caption{Fit (solid) vs.\ predict (dashed) wall times.
+      Top: scaling with observations \(m\).
+    Bottom: scaling with state dimension \(d\).}
 \end{figure}
 
 

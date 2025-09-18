@@ -98,22 +98,22 @@ def _run(
     da_method.assimilate(HMM, xx, yy)
     fit_time = time.perf_counter() - t0
 
-    # Time the prediction/extraction (predict) step
+    # Time the prediction/extraction (predict) step: read out the mean only
     t0 = time.perf_counter()
     posterior_mean = da_method.stats.mu.a[0]
+    predict_time = time.perf_counter() - t0
 
-    # Try to get ensemble from DA object, fallback to reconstruction
-    if hasattr(da_method, "E"):
-        posterior_ensemble = da_method.E
+    # Build posterior ensemble OUTSIDE the predict timer (needed for downstream plotting),
+    # and do it in O(N d) without forming a dense d x d covariance.
+    ens = getattr(da_method, "E", None)
+    if ens is not None:
+        posterior_ensemble = ens
     else:
-        # Reconstruct ensemble by sampling from posterior statistics using problem's RNG
-        posterior_ensemble = problem.rng.multivariate_normal(
-            posterior_mean,
-            np.eye(len(posterior_mean)) * da_method.stats.spread.a[0].mean() ** 2,
-            size=n_ens,
+        sigma = float(da_method.stats.spread.a[0].mean())
+        posterior_ensemble = posterior_mean + sigma * problem.rng.standard_normal(
+            size=(n_ens, problem.grid_size)
         )
     truth_at_analysis_time = xx[HMM.tseq.kko[0]]
-    predict_time = time.perf_counter() - t0
 
     return {
         "posterior_mean": posterior_mean,
