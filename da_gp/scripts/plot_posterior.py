@@ -210,7 +210,13 @@ def main():
     plt.title(
         f"Posterior Comparison (Observations = {args.n_obs}, Draws = {args.n_draws})"
     )
-    plt.legend(loc="upper right")
+    leg = plt.legend(loc="upper right", frameon=True, framealpha=0.95)
+    # Ensure legend is painted above all plot elements
+    leg.set_zorder(1000)
+    # Improve readability of legend
+    leg.get_frame().set_facecolor("white")
+    leg.get_frame().set_edgecolor("black")
+
     plt.grid(True, which="both", ls="--", alpha=0.2)
     plt.tight_layout()
 
