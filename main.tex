@@ -113,7 +113,6 @@ The Ensemble Kalman Filter (EnKF) is a widely used method for data assimilation 
 This paper provides a compact introduction to this simple but under-exploited connection, with necessary definitions accessible to all fields involved.
 
 Source code is available at \url{https://github.com/danmackinlay/paper_matheron_equals_enkf}.
-\end{abstract}
 
 \keywords{Ensemble Kalman Filter, Matheron Update, Gaussian Process, Data Assimilation, Geostatistics}
 
@@ -424,16 +423,19 @@ We report \textbf{median fit and predict times} obtained with our in-process tim
 \figureref{fig:posterior-samples} shows posterior draws from all three methods using squared-exponential basis functions matched to the generating process (the ``true prior'' setting). We see similar RMSE for the mean estimate between the methods, with a slightly overconfident posterior uncertainty in the ensemble methods.
 
 \paragraph{Speed.}
-Figure~\ref{fig:timing-curves} reports \textbf{fit} (training) and \textbf{predict} times as we sweep (top) the number of observations $m$ at fixed state dimension $d$, and (bottom) the state dimension $d$ at fixed $m$.
-The exact GP (scikit-learn) shows the expected $\mathcal{O}(m^3)$ fit scaling. Its predict time for mean-only scales as $\mathcal{O}(d \cdot m)$.
-In contrast, EnKF and LETKF fits scale roughly \textbf{linearly} in $m$ for fixed ensemble size $N$ (and linearly in $d$ with localization), while prediction is \textbf{linear in $d$} to read out the analysis mean.
-Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter predict-vs-$d$ curves than the exact GP, and as $m$ grows at fixed $d$, DA fits avoid the cubic blow-up of exact GP regression.
 
-\begin{figure}[htbp]
-  \floatconts
-    {fig:posterior-samples} % label
-    {\caption{Posterior draws from the exact GP (sklearn), EnKF, and LETKF..}} % caption
-    {\centering\includegraphics[width=\linewidth]{posterior_samples.pdf}}
+Figure~\ref{fig:timing-curves} reports fit (training) and predict times as we sweep (top) the number of observations $m$ at fixed state dimension $d$, and (bottom) the state dimension $d$ at fixed $m$.
+The exact GP (scikit-learn) shows the expected $\mathcal O(m^3)$ fit scaling.
+Its predict time grows with $d$ and $m$—mean-only scales as $\mathcal O(d\,m)$, while computing both mean and standard deviation (our default) scales as $\mathcal O(d\,m^2)$.
+In contrast, EnKF and LETKF fits scale roughly linearly in $m$ for fixed ensemble size $N$ (and linearly in $d$ with localization), while prediction is linear in $d$ to read out the analysis mean (and $\mathcal O(Nd)$ if we also materialize an ensemble).
+We do not vary $N$ in these plots.
+Consequently, as $d$ grows large at fixed $m$, the DA methods yield flatter predict‑vs‑$d$ curves than the exact GP, and as $m$ grows at fixed $d$, DA fits avoid the cubic blow‑up of exact GP regression.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\linewidth]{posterior_samples.pdf}
+  \caption{Posterior draws from the exact GP (sklearn), EnKF, and LETKF.}
+  \label{fig:posterior-samples}
 \end{figure}
 
 \begin{figure}[t]
