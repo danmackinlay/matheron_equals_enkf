@@ -1,0 +1,405 @@
+---
+title: "The Ensemble Kalman Update is an Empirical Matheron Update"
+author: "Dan MacKinlay"
+institute: Commonwealth Scientific and Industrial Research Organisation
+date: 2025-12-04
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    incremental: true
+    slide-level: 2
+execute:
+  echo: false
+  warning: false
+  cache: true
+  freeze: auto
+---
+
+## Ensemble Kalman = Empirical Matheron
+
+$$
+\newcommand{\Normal}{\mathcal{N}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\disteq}{\stackrel{\mathrm{d}}{=}}
+$$
+
+**Ensemble Kalman Filter (EnKF) as empirical Matheron update**
+
+- Gaussian conditioning
+- Kalman analysis step
+- Ensemble Kalman analysis
+
+::: {.notes}
+EnKF is a workhorse in geoscience data assimilation; Matheron / pathwise GP sampling is popular in ML and geostatistics. The core claim is that the EnKF analysis step is just an empirical Matheron update.
+This connection is simple, but not stated.
+:::
+
+## Gaussian conditioning (Matheron update)
+
+Joint Gaussian:
+
+$$
+\begin{bmatrix} x \\ y \end{bmatrix}
+\sim
+\Normal\!\left(
+\begin{bmatrix} m_x \\ m_y \end{bmatrix},
+\begin{bmatrix}
+C_{xx} & C_{xy} \\
+C_{yx} & C_{yy}
+\end{bmatrix}
+\right).
+$$
+
+Matheron / pathwise update:
+
+$$
+x \mid (y = y^*)
+\;\disteq\;
+x + C_{xy} C_{yy}^{-1}(y^* - y).
+$$
+
+::: {.notes}
+Recall Gaussian conditioning.
+
+Top: joint Gaussian prior for `x` and `y` with mean blocks and covariance blocks.
+
+Bottom: the Matheron update gives a *sample-wise* recipe for drawing from the conditional. Start from a prior draw `(x, y)`, then add an affine residual proportional to `y* - y`.
+
+No need to form the conditional covariance explicitly; instead we apply this linear map to prior samples.
+:::
+
+## Linear–Gaussian state + observation
+
+Linear observation model:
+
+$$
+y = H x + \varepsilon,
+\qquad
+\varepsilon \sim \Normal(0, R).
+$$
+
+Joint prior:
+
+$$
+\begin{bmatrix} x \\ y \end{bmatrix}
+\sim
+\Normal\!\left(
+\begin{bmatrix} m_x \\ H m_x \end{bmatrix},
+\begin{bmatrix}
+C_{xx} & C_{xx} H^\top \\
+H C_{xx} & H C_{xx} H^\top + R
+\end{bmatrix}
+\right).
+$$
+
+::: {.notes}
+Classic Kalman-filter setting, but we only care about the analysis (update) step.
+
+State `x` has prior `N(m_x, C_xx)`. Observations are linear in `x` plus Gaussian noise with covariance `R`.
+
+We now have a joint Gaussian over `(x, y)` ready for conditioning.
+:::
+
+## Kalman update as conditional Gaussian
+
+Posterior mean and covariance:
+
+$$
+m_{x\mid y}
+= m_x + K \bigl( y^* - H m_x \bigr),
+$$
+
+$$
+C_{x\mid y}
+= C_{xx} - K H C_{xx},
+$$
+
+with Kalman gain
+
+$$
+K
+= C_{xx} H^\top
+  \bigl( H C_{xx} H^\top + R \bigr)^{-1}.
+$$
+
+::: {.notes}
+Standard Kalman analysis step.
+
+`K` maps the innovation `y* - H m_x` into a state update. The posterior covariance shrinks by `K H C_xx`.
+
+Conceptually this is the same Gaussian conditioning problem as the Matheron update, but expressed via means and covariances rather than explicit samples.
+:::
+
+## Ensemble representation
+
+Prior ensemble (columns):
+
+$$
+X = \bigl[ x^{(1)} \;\; x^{(2)} \;\; \dots \;\; x^{(N)} \bigr].
+$$
+
+Sample mean and anomalies:
+
+$$
+\bar x = \frac{1}{N} \sum_{i=1}^N x^{(i)},
+\qquad
+X' = \frac{1}{\sqrt{N-1}}
+\bigl( X - \bar x \mathbf{1}^\top \bigr).
+$$
+
+Empirical covariance (with ridge):
+
+$$
+\widehat C_{xx} = X' X'^\top + \xi^2 I.
+$$
+
+::: {.notes}
+EnKF replaces exact moments by empirical ones from a finite ensemble.
+
+`X` is a `d × N` matrix of prior samples. `X'` are anomalies (demeaned and scaled). `X' X'^T` estimates the prior covariance `C_xx`.
+
+A small ridge `ξ^2 I` is often added for numerical stability / regularisation.
+:::
+
+## Ensemble joint and empirical gain
+
+Observation ensemble:
+
+$$
+Y = H X,
+\qquad
+Y' = \frac{1}{\sqrt{N-1}}
+\bigl( Y - \bar y \mathbf{1}^\top \bigr).
+$$
+
+Empirical covariances:
+
+$$
+\widehat C_{xy} = X' Y'^\top,
+\qquad
+\widehat C_{yy} = Y' Y'^\top + \gamma^2 I.
+$$
+
+Ensemble Kalman gain:
+
+$$
+\widehat K
+= \widehat C_{xy} \,\widehat C_{yy}^{-1}
+= X' Y'^\top
+  \bigl( Y' Y'^\top + \gamma^2 I \bigr)^{-1}.
+$$
+
+::: {.notes}
+Push the ensemble through `H` to get the observation ensemble `Y`, then form anomalies `Y'`.
+
+`Ĉ_xy` and `Ĉ_yy` are the empirical cross- and auto-covariances (with `γ² I` capturing both sampling regularisation and observation noise).
+
+Plugging them into the Kalman gain formula gives the ensemble Kalman gain `K̂`.
+:::
+
+## Ensemble Kalman analysis update
+
+Replicate the observation in columns:
+
+$$
+Y^* = y^* \mathbf{1}^\top.
+$$
+
+Ensemble update (analysis):
+
+$$
+X^{\text{a}}
+= X + \widehat K \bigl( Y^* - H X \bigr).
+$$
+
+Column-wise:
+
+$$
+x^{(i)}_{\text{a}}
+= x^{(i)} + \widehat K \bigl( y^* - H x^{(i)} \bigr).
+$$
+
+::: {.notes}
+Core EnKF analysis formula.
+
+For each ensemble member compute its innovation and map it back into state space with `K̂`.
+
+The updated ensemble `{x_a^(i)}` is intended to approximate draws from the true posterior `p(x | y = y*)`.
+:::
+
+## Empirical Matheron = EnKF
+
+Start from the Matheron update:
+
+$$
+x \mid (y = y^*)
+\;\disteq\;
+x + C_{xy} C_{yy}^{-1}(y^* - y).
+$$
+
+Replace exact covariances by empirical ones:
+
+$$
+C_{xy} \;\to\; \widehat C_{xy},
+\qquad
+C_{yy} \;\to\; \widehat C_{yy},
+$$
+
+and interpret \(x, y\) as columns of the ensemble \((X, Y)\).
+
+Then each analysis member satisfies
+
+$$
+x^{(i)}_{\text{a}}
+\;\disteq\;
+x^{(i)} +
+\widehat C_{xy} \widehat C_{yy}^{-1}
+\bigl( y^* - y^{(i)} \bigr),
+$$
+
+which is exactly the EnKF update.
+
+::: {.notes}
+Main result in one slide.
+
+Take the Matheron rule and plug in empirical covariance estimates. View `(x, y)` as ensemble columns. The sample-wise Matheron update is the EnKF analysis step applied to each member.
+
+In words: **“The EnKF analysis is an empirical Matheron update.”**
+:::
+
+## Computational complexity (rough scaling)
+
+Exact GP / Kalman:
+
+- Fit (Cholesky on \(m \times m\) matrix):
+  \( \mathcal{O}(m^3) \).
+- Predict at \(d\) points with variance:
+  \( \mathcal{O}(m^2 d)\) (or \( \mathcal{O}(m d)\) for mean-only).
+
+Ensemble Kalman (fixed ensemble size \(N\)):
+
+- Fit / analysis:
+  \( \mathcal{O}(N^2 m + N^3)\).
+- Predict / read-out of mean:
+  \( \mathcal{O}(N d)\).
+
+With localisation (LETKF): effectively linear in \(d\).
+
+::: {.notes}
+Exact GP / Kalman: cubic in `m` for training, at least quadratic in `m` for full predictive variance.
+
+EnKF trades exactness for an ensemble of size `N`, typically much smaller than `m` and `d`, giving much cheaper analysis and prediction.
+
+Localisation (LETKF) makes the update local in physical space, leading to effectively linear scaling in the state dimension `d`.
+:::
+
+## 1D kriging experiment
+
+Prior GP on a grid of size \(d\):
+
+$$
+x \sim \Normal(0, K),
+\qquad
+K_{ij}
+= \sigma^2 \exp\!\left(
+  - \frac{\lVert r_i - r_j \rVert^2}{2 \ell^2}
+\right).
+$$
+
+Noisy point observations at \(m = d/5\) locations:
+
+$$
+y = H x + \eta,
+\qquad
+\eta \sim \Normal(0, \tau^2 I).
+$$
+
+We compare:
+
+- exact GP regression (scikit-learn),
+- EnKF,
+- LETKF (localised EnKF).
+
+::: {.notes}
+Simple 1D kriging demo from the paper/repo.
+
+`x` is a latent field with squared-exponential GP prior; `m = d/5` noisy point observations with variance `τ²`.
+
+Three solvers:
+
+1. Exact GP regression via `GaussianProcessRegressor`.
+2. EnKF using DAPPER.
+3. Localised Ensemble Transform Kalman Filter (LETKF).
+
+Code is in `da_gp/src` and the plotting scripts under `da_gp/scripts`.:contentReference[oaicite:0]{index=0}
+:::
+
+## Posterior samples
+
+![](figures/posterior_samples.pdf){width=90%}
+
+::: {.notes}
+Posterior mean and samples for all three methods.
+
+Exact GP is the reference. EnKF and LETKF track the mean well, with slightly different posterior spreads (often a bit overconfident).
+
+The important part is that ensemble-based methods produce qualitatively similar posteriors using the empirical Matheron/EnKF update.
+:::
+
+## Timing vs observations and dimension
+
+![](figures/timing_vs_observations.pdf){width=90%}
+
+![](figures/timing_vs_dimensions.pdf){width=90%}
+
+::: {.notes}
+Top: times vs number of observations `m` at fixed `d`.
+
+- Exact GP shows ~`O(m³)` training behaviour.
+- EnKF / LETKF grow much more gently.
+
+Bottom: times vs state dimension `d` at fixed `m`.
+
+- GP prediction cost grows with `d` because of dense covariance operations.
+- EnKF / LETKF prediction is essentially linear in `d` (especially with localisation).
+
+These curves illustrate why EnKF-style methods are attractive for large-scale GP regression.
+:::
+
+## Capabilities unlocked
+
+- Linear-time / local GP sample paths via EnKF / LETKF.
+- Streaming / online hyperparameter learning by state augmentation.
+- Differentiable EnKF / Matheron blocks inside bigger ML models.
+- Localisation ≈ sparse / local GP structure in space or on graphs.
+- Ensemble inversion theory ⇒ error bounds for pathwise GP sampling.
+
+::: {.notes}
+Short summary of the “capabilities” section.
+
+The equivalence is not just aesthetic; it lets us port:
+
+- localisation, inflation, smoother variants,
+- ensemble inversion algorithms and their convergence results,
+
+into GP modelling, and bring sparse / variational GP ideas back into data assimilation.
+:::
+
+## Summary
+
+- Matheron update = sample-wise Gaussian conditioning.
+- EnKF analysis = same affine residual map with empirical covariances.
+- Therefore: **Ensemble Kalman update is an empirical Matheron update.**
+- This bridges:
+  - kriging / geostatistics,
+  - ensemble data assimilation (EnKF, LETKF),
+  - GP regression and pathwise sampling.
+
+::: {.notes}
+Wrap-up.
+
+Single affine residual identity unifies a lot of algorithms across communities. Once we see EnKF as an empirical Matheron update, tools and tricks can flow freely between data assimilation, geostatistics, and GP-based machine learning.
+:::

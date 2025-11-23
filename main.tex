@@ -392,14 +392,16 @@ Local ensemble transform Kalman filters (LETKF) taper covariances in physical sp
 Inverse-problem analyses prove contraction and bias properties of finite-ensemble EnKF~\citep{Schillings2017Analysis}; those proofs now bound the error of path-wise GP samplers for free.
 
 \paragraph{Take-away.}
-Treating EnKF analysis as an empirical Matheron  brings mature geophysical tool-kits—localisation, adaptive inflation, square-root variants—into scalable machine-learning while exporting automatic differentiation and sparse GP tricks back to data assimilation.
+Treating EnKF analysis as an empirical Matheron update brings mature geophysical tool-kits—localisation, adaptive inflation, square-root variants—into scalable machine-learning while exporting automatic differentiation and sparse GP tricks back to data assimilation.
 
 % ----------------------------------------------------------------
 \section{Numerical Illustration:  1D Kriging by Ensemble Kalman filer}
 \label{sec:numerical-demo}
 % ----------------------------------------------------------------
 
-We revisit the classic 1D kriging problem to demonstrate both the direct equivalence of the EnKF update to GP regression and the power of extending this link. We compare three solvers side-by-side: a standard GP implementation, its equivalent EnKF formulation, and the Local Ensemble Transform Kalman Filter (LETKF)~\citep{Bocquet2020Online,Hunt2007Efficient}, a popular data assimilation variant that introduces covariance localization. This illustrates how mature geophysical tools can be immediately repurposed for scalable GP inference. Code is available in the supplement.
+We revisit the classic 1D kriging problem to demonstrate both the direct equivalence of the EnKF update to GP regression and the power of extending this link.
+We compare three solvers side-by-side: a standard GP implementation, its equivalent EnKF formulation, and the Local Ensemble Transform Kalman Filter (LETKF)~\citep{Bocquet2020Online,Hunt2007Efficient}, a popular data assimilation variant that introduces covariance localization.
+This illustrates how mature geophysical tools can be immediately repurposed for scalable GP inference. Code is available in the supplement.
 We note that the Ensemble Kalman solvers used here are chosen for ease of implementation rather than efficiency of performance, and so we do not expect to see massive performance gains on these small problems.
 \begin{quote}
 \textbf{Task.}  Recover a latent field

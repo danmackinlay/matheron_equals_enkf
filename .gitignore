@@ -276,3 +276,6 @@ test*.csv
 
 # doit
 .doit.db.db
+
+slides_files
+slides.html

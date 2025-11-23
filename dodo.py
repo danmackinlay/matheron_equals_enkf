@@ -264,3 +264,38 @@ def task_clean_all():
         "actions": None,
         "task_dep": ["clean_data", "clean_figures", "clean_latex"],
     }
+
+def task_slides():
+    """
+    Build Quarto revealjs slide deck from slides.qmd.
+
+    Usage:
+        doit slides              # build slides.html only
+        doit slides:serve=yes    # build + start quarto preview server
+    """
+    return {
+        "actions": [
+            # Always build slides first
+            "quarto render slides.qmd",
+            # Optionally run a preview server
+            (
+                lambda serve: (
+                    os.system("quarto preview slides.qmd") if serve == "yes" else True
+                )
+            )
+        ],
+        "params": [
+            {
+                "name": "serve",
+                "long": "serve",
+                "default": "no",
+                "choices": ["yes", "no"],
+                "help": "Serve slides with live preview",
+            }
+        ],
+        "file_dep": ["slides.qmd"],
+        "targets": ["slides.html"],
+        "task_dep": ["figures"],     # so the cached figures exist
+        "clean": True,
+        "verbosity": 2,
+    }

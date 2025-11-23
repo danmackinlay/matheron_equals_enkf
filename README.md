@@ -154,12 +154,11 @@ uv run doit pdf             # full rebuild from scratch
   uv run python da_gp/scripts/plot_timing.py /tmp/check.csv --output-dir figures
   ```
 
-### Legacy Manual Workflow (Deprecated)
+### Legacy Manual Workflow
 
-**⚠️ The manual commands below are deprecated. Use `doit pdf` instead for automated dependency management.**
 
 <details>
-<summary>Click to expand deprecated manual workflow</summary>
+<summary>Click to expand manual workflow</summary>
 
 The following manual workflow still works but requires manual dependency tracking:
 
@@ -216,22 +215,6 @@ From `doit`, logs default to WARNING. Set a different level temporarily:
 LOG_LEVEL=INFO uv run doit pdf
 ```
 
-## Key Improvements in Timing System
-
-The new timing system provides several advantages:
-
-1. **Separate fit and predict times**: Dual-curve plots show that GP training is O(m³) while EnKF prediction is effectively O(1) for fixed ensemble size
-2. **Internal timing**: Uses `time.perf_counter()` to eliminate Python startup and I/O overhead
-3. **Statistical robustness**: Includes warm-up runs and reports median of 5 timing repeats
-4. **Shared datasets**: All backends use identical synthetic data for fair comparison
-5. **Dual figure workflow**: Two separate CSVs generate two complementary timing plots:
-   - `timing_obs.csv` → `timing_vs_observations.pdf` (scaling with observation count)
-   - `timing_dim.csv` → `timing_vs_dimensions.pdf` (scaling with state dimension)
-6. **Smart plotting**: `plot_timing.py` auto-detects data variation and generates appropriate plots
-7. **Hardened plotting**: Validates data points, uses unified JMLR styling, supports color-blind friendly palettes
-8. **Flexible visualization**: CLI flags for fixed values, legend control, and explicit scale settings
-
-
 ## Testing
 
 ```bash
@@ -255,7 +238,7 @@ uv run da-gp --backend dapper_letkf --n_obs 1000 --grid_size 500 --verbose
 
 The CLI now reports separate fit and predict times along with CSV output including both timings.
 
-### Timing Benchmark Script (NEW)
+### Timing Benchmark Script
 
 Generate timing data with internal benchmarking and statistical robustness.
 
@@ -293,6 +276,13 @@ uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
     --fixed-n-obs 1000 --no-legend --output-dir figures
 ```
 
+### Slides
+
+```bash
+doit slides            # build only
+doit slides:serve=yes  # build + serve
+```
+
 ## Troubleshooting
 
 ### Shape/Broadcast Errors (RESOLVED)
@@ -303,7 +293,7 @@ uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
 
 - All functions are **side-effect-free** and receive explicit `Problem` arguments
 - No global state means no import-order dependencies
-- Each experiment uses fresh, immutable `Problem` instances
+- Each experiment uses fresh, immutable `Problem` ipentynstances
 
 **Modern usage** (no global state):
 ```python
