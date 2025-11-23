@@ -1,5 +1,5 @@
 ---
-title: "The Ensemble Kalman Update is an Empirical Matheron Update"
+title: "The Ensemble Kálmán Update is an Empirical Matheron Update"
 author: "Dan MacKinlay"
 institute: Commonwealth Scientific and Industrial Research Organisation
 date: 2025-12-04
@@ -19,7 +19,7 @@ bibliography: refs.bib
 csl: minimalist.csl
 ---
 
-## Ensemble Kalman = Empirical Matheron
+## Ensemble Kálmán = Empirical Matheron
 
 $$
 \newcommand{\Normal}{\mathcal{N}}
@@ -34,14 +34,15 @@ $$
 **Unifying:**
 
 - Gaussian conditioning
-- Kalman analysis step
-- Ensemble Kalman analysis
+- Kálmán analysis step
+- Ensemble Kálmán analysis
 
 ::: {.notes}
-EnKF is a workhorse in geoscience data assimilation; Matheron / pathwise GP sampling is popular in ML and geostatistics. The core claim is that the EnKF analysis step is just an empirical Matheron update.
-This connection is simple, but not stated, so let's state it.
+EnKF is a workhorse in geoscience for data assimilation; Matheron / pathwise GP sampling is popular in ML and geostatistics. The core claim is that the EnKF analysis step is just an empirical Matheron update.
+This connection is simple, but not made explicitly, so let's state it.
 
-Think of this presentation as a light sorbet
+Think of this presentation as a light sorbet.
+You should leave with a refreshing, simple taste in your mouth.
 :::
 
 ## Gaussian conditioning à la Matheron
@@ -109,14 +110,14 @@ $$
 [@Kalman1960New]
 
 ::: {.notes}
-Classic Kalman-filter setting, but we only care about the analysis (update) step.
+Classic Kálmán-filter setting, but we only care about the analysis (update) step.
 
 State `x` has prior `N(m_x, C_xx)`. Observations are linear in `x` plus Gaussian noise with covariance `R`.
 
 We now have a joint Gaussian over `(x, y)` ready for conditioning.
 :::
 
-## Kalman update as conditional Gaussian
+## Kálmán update as conditional Gaussian
 
 Posterior mean and covariance:
 
@@ -130,7 +131,7 @@ $$
 = \mm{C}_{\rv{xx}} - \mm{K} \mm{H} \mm{C}_{\rv{xx}},
 $$
 
-with Kalman gain
+with Kálmán gain
 
 $$
 \mm{K}
@@ -139,7 +140,7 @@ $$
 $$
 
 ::: {.notes}
-Standard Kalman analysis step.
+Standard Kálmán posterior updated ("analysis") step.
 
 `K` maps the innovation `y* - H m_x` into a state update. The posterior covariance shrinks by `K H C_xx`.
 
@@ -189,7 +190,7 @@ $$
 \widehat{\mm{C}}_{\rv{yy}} = \widetilde{\mm{Y}} \widetilde{\mm{Y}}^\top + \gamma^2 \mm{I}.
 $$
 
-Ensemble Kalman gain:
+Ensemble Kálmán gain:
 
 $$
 \widehat{\mm{K}}
@@ -203,10 +204,10 @@ Push the ensemble through `H` to get the observation ensemble `Y`, then form ano
 
 `Ĉ_xy` and `Ĉ_yy` are the empirical cross- and auto-covariances (with `γ² I` capturing both sampling regularisation and observation noise).
 
-Plugging them into the Kalman gain formula gives the ensemble Kalman gain `K̂`.
+Plugging them into the Kálmán gain formula gives the ensemble Kálmán gain `K̂`.
 :::
 
-## Ensemble Kalman analysis update
+## Ensemble Kálmán posterior update
 
 Replicate the observation in columns:
 
@@ -214,7 +215,7 @@ $$
 \mm{Y}^* = y^* \mathbf{1}^\top.
 $$
 
-Ensemble update (analysis):
+Ensemble posterior update:
 
 $$
 \mm{X}^{\text{a}}
@@ -278,14 +279,14 @@ In words: **“The EnKF analysis is an empirical Matheron update.”**
 
 ## Computational complexity
 
-Exact GP / Kalman:
+Exact GP / Kálmán:
 
 - Fit (Cholesky on \(m \times m\) matrix):
   \( \mathcal{O}(m^3) \).
 - Predict at \(d\) points with variance:
   \( \mathcal{O}(m^2 d)\) (or \( \mathcal{O}(m d)\) for mean-only).
 
-Ensemble Kalman (fixed ensemble size \(N\)):
+Ensemble Kálmán (fixed ensemble size \(N\)):
 
 - Fit / analysis:
   \( \mathcal{O}(N^2 m + N^3)\).
@@ -295,7 +296,7 @@ Ensemble Kalman (fixed ensemble size \(N\)):
 With localisation (LETKF): effectively linear in \(d\).
 
 ::: {.notes}
-Exact GP / Kalman: cubic in `m` for training, at least quadratic in `m` for full predictive variance.
+Exact GP / Kálmán: cubic in `m` for training, at least quadratic in `m` for full predictive variance.
 
 EnKF trades exactness for an ensemble of size `N`, typically much smaller than `m` and `d`, giving much cheaper analysis and prediction.
 
@@ -338,14 +339,14 @@ Three solvers:
 
 1. Exact GP regression via `GaussianProcessRegressor`.
 2. EnKF using DAPPER.
-3. Localised Ensemble Transform Kalman Filter (LETKF).
+3. Localised Ensemble Transform Kálmán Filter (LETKF).
 
 Code is in `da_gp/src` and the plotting scripts under `da_gp/scripts`.:contentReference[oaicite:0]{index=0}
 :::
 
 ## Posterior samples
 
-![](figures/posterior_samples.pdf){width=90%}
+![](figures/posterior_samples.png){width=90%}
 
 ::: {.notes}
 Posterior mean and samples for all three methods.
@@ -357,9 +358,9 @@ The important part is that ensemble-based methods produce qualitatively similar 
 
 ## Timing vs observations and dimension
 
-![](figures/timing_vs_observations.pdf){width=90%}
+![](figures/timing_vs_observations.png){width=90%}
 
-![](figures/timing_vs_dimensions.pdf){width=90%}
+![](figures/timing_vs_dimensions.png){width=90%}
 
 ::: {.notes}
 Top: times vs number of observations `m` at fixed `d`.
@@ -398,7 +399,7 @@ into GP modelling, and bring sparse / variational GP ideas back into data assimi
 
 - Matheron update = sample-wise Gaussian conditioning.
 - EnKF analysis = same affine residual map with empirical covariances.
-- Therefore: **Ensemble Kalman update is an empirical Matheron update.**
+- Therefore: **Ensemble Kálmán update is an empirical Matheron update.**
 - This bridges:
   - kriging / geostatistics,
   - ensemble data assimilation (EnKF, LETKF),
@@ -409,3 +410,5 @@ Wrap-up.
 
 Single affine residual identity unifies a lot of algorithms across communities. Once we see EnKF as an empirical Matheron update, tools and tricks can flow freely between data assimilation, geostatistics, and GP-based machine learning.
 :::
+
+## References

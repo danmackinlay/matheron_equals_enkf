@@ -205,8 +205,8 @@ def main():
     )
 
     # Formatting
-    plt.xlabel("State Dimension (Grid Index)")
-    plt.ylabel("Value")
+    plt.xlabel("State Index")
+    # plt.ylabel("Value")
     plt.title(
         f"Posterior Comparison (Observations = {args.n_obs}, Draws = {args.n_draws})"
     )
@@ -223,6 +223,11 @@ def main():
     # Save figure
     plt.savefig(args.out, dpi=300, bbox_inches="tight")
     logger.info(f"Saved figure to {args.out}")
+
+    # Also save as PNG for web display
+    png_path = Path(args.out).with_suffix(".png")
+    plt.savefig(png_path, dpi=300, bbox_inches="tight")
+    logger.info(f"Saved PNG to {png_path}")
 
 
 if __name__ == "__main__":

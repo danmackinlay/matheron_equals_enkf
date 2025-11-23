@@ -180,6 +180,11 @@ def plot_timing(
     plt.savefig(output_path, bbox_inches="tight", dpi=300)
     logger.info(f"Timing plot saved to: {output_path}")
 
+    # Also save as PNG for web display
+    png_path = Path(output_path).with_suffix(".png")
+    plt.savefig(png_path, bbox_inches="tight", dpi=300)
+    logger.info(f"Timing plot (PNG) saved to: {png_path}")
+
     return fig
 
 
