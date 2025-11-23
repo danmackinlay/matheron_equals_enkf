@@ -24,11 +24,12 @@ The project is organized to separate the Python package, scripts, and publicatio
 
 ## Available Backends
 
-This project compares three different inference methods:
+This project compares four different inference methods:
 
 - `sklearn`: The baseline implementation using `GaussianProcessRegressor` from scikit-learn. It represents the standard, exact GP regression approach.
 - `dapper_enkf`: An implementation using the standard Ensemble Kalman Filter (EnKF) from the DAPPER library. This is the global, non-localized data assimilation method.
 - `dapper_letkf`: An implementation using the Local Ensemble Transform Kalman Filter (LETKF) from DAPPER. This method applies localization, only updating state variables using nearby observations, which is analogous to sparse or localized GP methods.
+- `matheron_ens`: hand rolled empirical Matheron update with random fourier features
 
 ## Functional Architecture
 
@@ -144,7 +145,7 @@ uv run doit pdf             # full rebuild from scratch
   ```bash
   uv run python -m da_gp.scripts.bench \
     --n_obs_grid 50 100 --grid_size_fixed 2000 \
-    --backends sklearn dapper_enkf dapper_letkf \
+    --backends sklearn dapper_enkf dapper_letkf matheron_ens \
     --csv /tmp/check.csv --repeats 1
   ```
 
@@ -252,7 +253,7 @@ The following manual workflow still works but requires manual dependency trackin
 uv run python -m da_gp.scripts.bench \
     --n_obs_grid 100 500 1000 2000 5000 \
     --grid_size_fixed 2000 \
-    --backends sklearn dapper_enkf dapper_letkf \
+    --backends sklearn dapper_enkf dapper_letkf matheron_ens \
     --csv data/timing_obs.csv \
     --repeats 5
 
@@ -260,7 +261,7 @@ uv run python -m da_gp.scripts.bench \
 uv run python -m da_gp.scripts.bench \
     --dim_grid 250 500 1000 2000 4000 \
     --n_obs_fixed 1000 \
-    --backends sklearn dapper_enkf dapper_letkf \
+    --backends sklearn dapper_enkf dapper_letkf matheron_ens \
     --csv data/timing_dim.csv \
     --repeats 5
 

@@ -32,7 +32,7 @@ from da_gp.src.gp_common import Problem, generate_experiment_data
 
 logger = get_logger(__name__)
 
-DEFAULT_BACKENDS = ["sklearn", "dapper_enkf", "dapper_letkf"]
+DEFAULT_BACKENDS = ["sklearn", "dapper_enkf", "dapper_letkf", "matheron_ens"]
 
 
 class Timing(NamedTuple):
@@ -48,18 +48,17 @@ def get_backend_runner(backend: str):
     """Get the appropriate backend runner function."""
     if backend == "sklearn":
         from da_gp.src.gp_sklearn import run
-
         return run
     if backend == "dapper_enkf":
         from da_gp.src.gp_dapper import run_enkf
-
         return run_enkf
     if backend == "dapper_letkf":
         from da_gp.src.gp_dapper import run_letkf
-
         return run_letkf
+    if backend == "matheron_ens":
+        from da_gp.src.gp_matheron_ens import run
+        return run
     raise ValueError(f"Unknown backend: {backend}")
-
 
 def run_experiment_once(
     backend: str, problem: Problem, shared_data: dict[tuple, tuple] = None
@@ -259,7 +258,7 @@ def main():
         "--backends",
         nargs="+",
         default=DEFAULT_BACKENDS,
-        choices=["sklearn", "dapper_enkf", "dapper_letkf"],
+        choices=["sklearn", "dapper_enkf", "dapper_letkf", "matheron_ens"],
         help="Backends to test (default: all)",
     )
     parser.add_argument(

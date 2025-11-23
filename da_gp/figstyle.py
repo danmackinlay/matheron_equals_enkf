@@ -49,9 +49,10 @@ except ImportError:
 
 # Backend styling - consistent colors and markers across all plots
 BACKEND_STYLES = {
-    "sklearn": {"marker": "o", "color": "C0", "label": "Sklearn GP", "linestyle": "-"},
-    "dapper_enkf": {"marker": "s", "color": "C1", "label": "EnKF", "linestyle": "-"},
-    "dapper_letkf": {"marker": "^", "color": "C2", "label": "LETKF", "linestyle": "-"},
+    "sklearn":      {"marker": "o", "color": "C0", "label": "Sklearn GP",      "linestyle": "-"},
+    "dapper_enkf":  {"marker": "s", "color": "C1", "label": "EnKF",           "linestyle": "-"},
+    "dapper_letkf": {"marker": "^", "color": "C2", "label": "LETKF",         "linestyle": "-"},
+    "matheron_ens": {"marker": "d", "color": "C3", "label": "Matheron (RFF)", "linestyle": "-."},
 }
 
 # Color-blind friendly palette (optional)

@@ -79,6 +79,13 @@ def _load_backend(
             np.std(ensemble, axis=0) if ensemble.size > 0 else np.ones_like(mean) * 0.1
         )
 
+    elif backend == "matheron_ens":
+        from . import gp_matheron_ens as module
+
+        result = module.run(problem, n_ens=n_ens)
+        mean = result["posterior_mean"]
+        std = result["posterior_std"]
+
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
@@ -107,10 +114,9 @@ def main() -> None:
         action="store_true",
         help="Use JSON formatting for logs",
     )
-
     parser.add_argument(
         "--backend",
-        choices=["sklearn", "dapper_enkf", "dapper_letkf"],
+        choices=["sklearn", "dapper_enkf", "dapper_letkf", "matheron_ens"],
         required=True,
         help="Backend to use for the experiment",
     )
@@ -170,6 +176,9 @@ def main() -> None:
             from . import gp_dapper as backend
 
             result = backend.run_letkf(problem, n_ens=args.n_ens)
+        elif args.backend == "matheron_ens":
+            from . import gp_matheron_ens as backend
+            result = backend.run(problem, n_ens=args.n_ens)
         else:
             raise ValueError(f"Unknown backend: {args.backend}")
 
