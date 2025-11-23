@@ -48,17 +48,22 @@ def get_backend_runner(backend: str):
     """Get the appropriate backend runner function."""
     if backend == "sklearn":
         from da_gp.src.gp_sklearn import run
+
         return run
     if backend == "dapper_enkf":
         from da_gp.src.gp_dapper import run_enkf
+
         return run_enkf
     if backend == "dapper_letkf":
         from da_gp.src.gp_dapper import run_letkf
+
         return run_letkf
     if backend == "matheron_ens":
         from da_gp.src.gp_matheron_ens import run
+
         return run
     raise ValueError(f"Unknown backend: {backend}")
+
 
 def run_experiment_once(
     backend: str, problem: Problem, shared_data: dict[tuple, tuple] = None

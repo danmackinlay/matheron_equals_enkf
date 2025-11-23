@@ -178,6 +178,7 @@ def main() -> None:
             result = backend.run_letkf(problem, n_ens=args.n_ens)
         elif args.backend == "matheron_ens":
             from . import gp_matheron_ens as backend
+
             result = backend.run(problem, n_ens=args.n_ens)
         else:
             raise ValueError(f"Unknown backend: {args.backend}")

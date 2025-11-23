@@ -265,6 +265,7 @@ def task_clean_all():
         "task_dep": ["clean_data", "clean_figures", "clean_latex"],
     }
 
+
 def task_slides():
     """
     Build Quarto revealjs slide deck from slides.qmd.
@@ -282,7 +283,7 @@ def task_slides():
                 lambda serve: (
                     os.system("quarto preview slides.qmd") if serve == "yes" else True
                 )
-            )
+            ),
         ],
         "params": [
             {
@@ -295,7 +296,7 @@ def task_slides():
         ],
         "file_dep": ["slides.qmd"],
         "targets": ["slides.html"],
-        "task_dep": ["figures"],     # so the cached figures exist
+        "task_dep": ["figures"],  # so the cached figures exist
         "clean": True,
         "verbosity": 2,
     }

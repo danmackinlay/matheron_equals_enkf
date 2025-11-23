@@ -38,13 +38,12 @@ Compared to the `gp_sklearn` backend this is:
 from __future__ import annotations
 
 import time
-from typing import Tuple
 
 import numpy as np
 
 from .gp_common import (
-    Problem,
     RFF_DIM,
+    Problem,
     generate_experiment_data,
     make_grid,
     make_rff_params,
@@ -68,7 +67,7 @@ def _phi(x: np.ndarray, W: np.ndarray, b: np.ndarray) -> np.ndarray:
 
 def _build_woodbury_system(
     Phi_obs: np.ndarray, noise_std: float
-) -> Tuple[np.ndarray, float]:
+) -> tuple[np.ndarray, float]:
     """Precompute matrices for applying Σ_yy^{-1} via Woodbury.
 
     Model:
@@ -190,7 +189,7 @@ def run(
 
     # 1D grid and observed locations
     X_grid = make_grid(grid_size)  # (d, 1)
-    X_obs = X_grid[mask]           # (m, 1)
+    X_obs = X_grid[mask]  # (m, 1)
 
     # ---------------------- STEP 1: feature + Woodbury (fit) ----------------
     fit_start = time.perf_counter()

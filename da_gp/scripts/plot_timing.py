@@ -50,9 +50,7 @@ def _choose_sweep(df: pd.DataFrame, sweep: str):
             f"Ambiguous sweep type (n_obs unique: {n_obs_unique}, grid_size unique: {grid_size_unique}), defaulting to n_obs"
         )
         return "n_obs", "observations (m)", "n_obs", "", df
-    raise ValueError(
-        f"Invalid sweep mode: {sweep}. Must be 'obs', 'dim', or 'auto'"
-    )
+    raise ValueError(f"Invalid sweep mode: {sweep}. Must be 'obs', 'dim', or 'auto'")
 
 
 def _draw_axis(
