@@ -7,26 +7,31 @@ format:
   revealjs:
     theme: simple
     slide-number: true
-    incremental: true
+    # incremental: true
     slide-level: 2
+    html-math-method: mathjax
 execute:
   echo: false
   warning: false
   cache: true
   freeze: auto
+bibliography: refs.bib
+csl: minimalist.csl
 ---
 
 ## Ensemble Kalman = Empirical Matheron
 
 $$
 \newcommand{\Normal}{\mathcal{N}}
+\newcommand{\rv}[1]{\mathsf{#1}}
+\newcommand{\mm}[1]{\mathrm{#1}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\Var}{\mathrm{Var}}
 \newcommand{\Cov}{\mathrm{Cov}}
 \newcommand{\disteq}{\stackrel{\mathrm{d}}{=}}
 $$
 
-**Ensemble Kalman Filter (EnKF) as empirical Matheron update**
+**Unifying:**
 
 - Gaussian conditioning
 - Kalman analysis step
@@ -34,21 +39,24 @@ $$
 
 ::: {.notes}
 EnKF is a workhorse in geoscience data assimilation; Matheron / pathwise GP sampling is popular in ML and geostatistics. The core claim is that the EnKF analysis step is just an empirical Matheron update.
-This connection is simple, but not stated.
+This connection is simple, but not stated, so let's state it.
+
+Think of this presentation as a light sorbet
 :::
 
-## Gaussian conditioning (Matheron update)
+## Gaussian conditioning à la Matheron
+
 
 Joint Gaussian:
 
 $$
-\begin{bmatrix} x \\ y \end{bmatrix}
+\begin{bmatrix} \rv{x} \\ \rv{y} \end{bmatrix}
 \sim
 \Normal\!\left(
-\begin{bmatrix} m_x \\ m_y \end{bmatrix},
+\begin{bmatrix} m_{\rv{x}} \\ m_{\rv{y}} \end{bmatrix},
 \begin{bmatrix}
-C_{xx} & C_{xy} \\
-C_{yx} & C_{yy}
+\mm{C}_{\rv{xx}} & \mm{C}_{\rv{xy}} \\
+\mm{C}_{\rv{yx}} & \mm{C}_{\rv{yy}}
 \end{bmatrix}
 \right).
 $$
@@ -56,10 +64,13 @@ $$
 Matheron / pathwise update:
 
 $$
-x \mid (y = y^*)
+\rv{x} \mid (\rv{y} = y^*)
 \;\disteq\;
-x + C_{xy} C_{yy}^{-1}(y^* - y).
+\rv{x} + \mm{C}_{\rv{xy}} \mm{C}_{\rv{yy}}^{-1}(y^* - \rv{y}).
 $$
+
+[@Doucet2010Note;@Wilson2021Pathwise]
+
 
 ::: {.notes}
 Recall Gaussian conditioning.
@@ -71,29 +82,31 @@ Bottom: the Matheron update gives a *sample-wise* recipe for drawing from the co
 No need to form the conditional covariance explicitly; instead we apply this linear map to prior samples.
 :::
 
-## Linear–Gaussian state + observation
+## Kálmán update
 
-Linear observation model:
+Gaussian, with linear observation model:
 
 $$
-y = H x + \varepsilon,
+\rv{y} = \mm{H} \rv{x} + \rv{\varepsilon},
 \qquad
-\varepsilon \sim \Normal(0, R).
+\rv{\varepsilon} \sim \Normal(0, \mm{R}).
 $$
 
 Joint prior:
 
 $$
-\begin{bmatrix} x \\ y \end{bmatrix}
+\begin{bmatrix} \rv{x} \\ \rv{y} \end{bmatrix}
 \sim
 \Normal\!\left(
-\begin{bmatrix} m_x \\ H m_x \end{bmatrix},
+\begin{bmatrix} m_{\rv{x}} \\ \mm{H} m_{\rv{x}} \end{bmatrix},
 \begin{bmatrix}
-C_{xx} & C_{xx} H^\top \\
-H C_{xx} & H C_{xx} H^\top + R
+\mm{C}_{\rv{xx}} & \mm{C}_{\rv{xx}} \mm{H}^\top \\
+\mm{H} \mm{C}_{\rv{xx}} & \mm{H} \mm{C}_{\rv{xx}} \mm{H}^\top + \mm{R}
 \end{bmatrix}
 \right).
 $$
+
+[@Kalman1960New]
 
 ::: {.notes}
 Classic Kalman-filter setting, but we only care about the analysis (update) step.
@@ -108,21 +121,21 @@ We now have a joint Gaussian over `(x, y)` ready for conditioning.
 Posterior mean and covariance:
 
 $$
-m_{x\mid y}
-= m_x + K \bigl( y^* - H m_x \bigr),
+m_{\rv{x}\mid \rv{y}}
+= m_{\rv{x}} + \mm{K} \bigl( y^* - \mm{H} m_{\rv{x}} \bigr),
 $$
 
 $$
-C_{x\mid y}
-= C_{xx} - K H C_{xx},
+\mm{C}_{\rv{x}\mid \rv{y}}
+= \mm{C}_{\rv{xx}} - \mm{K} \mm{H} \mm{C}_{\rv{xx}},
 $$
 
 with Kalman gain
 
 $$
-K
-= C_{xx} H^\top
-  \bigl( H C_{xx} H^\top + R \bigr)^{-1}.
+\mm{K}
+= \mm{C}_{\rv{xx}} \mm{H}^\top
+  \bigl( \mm{H} \mm{C}_{\rv{xx}} \mm{H}^\top + \mm{R} \bigr)^{-1}.
 $$
 
 ::: {.notes}
@@ -135,26 +148,19 @@ Conceptually this is the same Gaussian conditioning problem as the Matheron upda
 
 ## Ensemble representation
 
-Prior ensemble (columns):
-
 $$
-X = \bigl[ x^{(1)} \;\; x^{(2)} \;\; \dots \;\; x^{(N)} \bigr].
-$$
-
-Sample mean and anomalies:
-
-$$
-\bar x = \frac{1}{N} \sum_{i=1}^N x^{(i)},
-\qquad
-X' = \frac{1}{\sqrt{N-1}}
-\bigl( X - \bar x \mathbf{1}^\top \bigr).
+\begin{aligned}
+\mm{X} &= \bigl[ x^{(1)} \;\; x^{(2)} \;\; \dots \;\; x^{(N)} \bigr]\\
+\bar{x} &= \frac{1}{N} \sum_{i=1}^N x^{(i)},
+\\
+\widetilde{\mm{X}} &= \frac{1}{\sqrt{N-1}}
+\bigl( \mm{X} - \bar x \mathbf{1}^\top \bigr)\\
+\Rightarrow \widehat{\mm{C}}_{\rv{xx}} &= \widetilde{\mm{X}} \widetilde{\mm{X}}^\top + \xi^2 \mm{I} \approx \Var[{\rv{x}}]
+\end{aligned}
 $$
 
-Empirical covariance (with ridge):
+@Evensen1994Sequential
 
-$$
-\widehat C_{xx} = X' X'^\top + \xi^2 I.
-$$
 
 ::: {.notes}
 EnKF replaces exact moments by empirical ones from a finite ensemble.
@@ -169,27 +175,27 @@ A small ridge `ξ^2 I` is often added for numerical stability / regularisation.
 Observation ensemble:
 
 $$
-Y = H X,
+\mm{Y} = \mm{H} \mm{X},
 \qquad
-Y' = \frac{1}{\sqrt{N-1}}
-\bigl( Y - \bar y \mathbf{1}^\top \bigr).
+\widetilde{\mm{Y}} = \frac{1}{\sqrt{N-1}}
+\bigl( \mm{Y} - \bar y \mathbf{1}^\top \bigr).
 $$
 
 Empirical covariances:
 
 $$
-\widehat C_{xy} = X' Y'^\top,
+\widehat{\mm{C}}_{\rv{xy}} = \widetilde{\mm{X}} \widetilde{\mm{Y}}^\top,
 \qquad
-\widehat C_{yy} = Y' Y'^\top + \gamma^2 I.
+\widehat{\mm{C}}_{\rv{yy}} = \widetilde{\mm{Y}} \widetilde{\mm{Y}}^\top + \gamma^2 \mm{I}.
 $$
 
 Ensemble Kalman gain:
 
 $$
-\widehat K
-= \widehat C_{xy} \,\widehat C_{yy}^{-1}
-= X' Y'^\top
-  \bigl( Y' Y'^\top + \gamma^2 I \bigr)^{-1}.
+\widehat{\mm{K}}
+= \widehat{\mm{C}}_{\rv{xy}} \,\widehat{\mm{C}}_{\rv{yy}}^{-1}
+= \widetilde{\mm{X}} \widetilde{\mm{Y}}^\top
+  \bigl( \widetilde{\mm{Y}} \widetilde{\mm{Y}}^\top + \gamma^2 \mm{I} \bigr)^{-1}.
 $$
 
 ::: {.notes}
@@ -205,21 +211,21 @@ Plugging them into the Kalman gain formula gives the ensemble Kalman gain `K̂`.
 Replicate the observation in columns:
 
 $$
-Y^* = y^* \mathbf{1}^\top.
+\mm{Y}^* = y^* \mathbf{1}^\top.
 $$
 
 Ensemble update (analysis):
 
 $$
-X^{\text{a}}
-= X + \widehat K \bigl( Y^* - H X \bigr).
+\mm{X}^{\text{a}}
+= \mm{X} + \widehat{\mm{K}} \bigl( \mm{Y}^* - \mm{H} \mm{X} \bigr).
 $$
 
 Column-wise:
 
 $$
 x^{(i)}_{\text{a}}
-= x^{(i)} + \widehat K \bigl( y^* - H x^{(i)} \bigr).
+= x^{(i)} + \widehat{\mm{K}} \bigl( y^* - \mm{H} x^{(i)} \bigr).
 $$
 
 ::: {.notes}
@@ -243,12 +249,12 @@ $$
 Replace exact covariances by empirical ones:
 
 $$
-C_{xy} \;\to\; \widehat C_{xy},
+\mm{C}_{\rv{xy}} \;\to\; \widehat{\mm{C}}_{\rv{xy}},
 \qquad
-C_{yy} \;\to\; \widehat C_{yy},
+\mm{C}_{\rv{yy}} \;\to\; \widehat{\mm{C}}_{\rv{yy}},
 $$
 
-and interpret \(x, y\) as columns of the ensemble \((X, Y)\).
+and interpret \(x, y\) as columns of the ensemble \((\mm{X}, \mm{Y})\).
 
 Then each analysis member satisfies
 
@@ -256,7 +262,7 @@ $$
 x^{(i)}_{\text{a}}
 \;\disteq\;
 x^{(i)} +
-\widehat C_{xy} \widehat C_{yy}^{-1}
+\widehat{\mm{C}}_{\rv{xy}} \widehat{\mm{C}}_{\rv{yy}}^{-1}
 \bigl( y^* - y^{(i)} \bigr),
 $$
 
@@ -270,7 +276,7 @@ Take the Matheron rule and plug in empirical covariance estimates. View `(x, y)`
 In words: **“The EnKF analysis is an empirical Matheron update.”**
 :::
 
-## Computational complexity (rough scaling)
+## Computational complexity
 
 Exact GP / Kalman:
 
@@ -301,9 +307,9 @@ Localisation (LETKF) makes the update local in physical space, leading to effect
 Prior GP on a grid of size \(d\):
 
 $$
-x \sim \Normal(0, K),
+x \sim \Normal(0, \mm{K}),
 \qquad
-K_{ij}
+\mm{K}_{ij}
 = \sigma^2 \exp\!\left(
   - \frac{\lVert r_i - r_j \rVert^2}{2 \ell^2}
 \right).
@@ -312,9 +318,9 @@ $$
 Noisy point observations at \(m = d/5\) locations:
 
 $$
-y = H x + \eta,
+\rv{y} = \mm{H} \rv{x} + \rv{\eta},
 \qquad
-\eta \sim \Normal(0, \tau^2 I).
+\rv{\eta} \sim \Normal(0, \tau^2 \mm{I}).
 $$
 
 We compare:
