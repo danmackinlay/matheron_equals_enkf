@@ -173,21 +173,16 @@ A small ridge `ξ^2 I` is often added for numerical stability / regularisation.
 
 ## Ensemble joint and empirical gain
 
-Observation ensemble:
-
 $$
-\mm{Y} = \mm{H} \mm{X},
+\begin{aligned}
+\mm{Y} &= \mm{H} \mm{X},
 \qquad
-\widetilde{\mm{Y}} = \frac{1}{\sqrt{N-1}}
-\bigl( \mm{Y} - \bar y \mathbf{1}^\top \bigr).
-$$
-
-Empirical covariances:
-
-$$
-\widehat{\mm{C}}_{\rv{xy}} = \widetilde{\mm{X}} \widetilde{\mm{Y}}^\top,
+&\widetilde{\mm{Y}} &= \frac{1}{\sqrt{N-1}}
+\bigl( \mm{Y} - \bar y \mathbf{1}^\top \bigr) \\
+\widehat{\mm{C}}_{\rv{xy}} &= \widetilde{\mm{X}} \widetilde{\mm{Y}}^\top,
 \qquad
-\widehat{\mm{C}}_{\rv{yy}} = \widetilde{\mm{Y}} \widetilde{\mm{Y}}^\top + \gamma^2 \mm{I}.
+&\widehat{\mm{C}}_{\rv{yy}} &= \widetilde{\mm{Y}} \widetilde{\mm{Y}}^\top + \gamma^2 \mm{I}.
+\end{aligned}
 $$
 
 Ensemble Kálmán gain:
@@ -218,15 +213,12 @@ $$
 Ensemble posterior update:
 
 $$
+\begin{aligned}
 \mm{X}^{\text{a}}
-= \mm{X} + \widehat{\mm{K}} \bigl( \mm{Y}^* - \mm{H} \mm{X} \bigr).
-$$
-
-Column-wise:
-
-$$
+&= \mm{X} + \widehat{\mm{K}} \bigl( \mm{Y}^* - \mm{H} \mm{X} \bigr)\\
 x^{(i)}_{\text{a}}
-= x^{(i)} + \widehat{\mm{K}} \bigl( y^* - \mm{H} x^{(i)} \bigr).
+&= x^{(i)} + \widehat{\mm{K}} \bigl( y^* - \mm{H} x^{(i)} \bigr).
+\end{aligned}
 $$
 
 ::: {.notes}
@@ -239,23 +231,17 @@ The updated ensemble `{x_a^(i)}` is intended to approximate draws from the true 
 
 ## Empirical Matheron = EnKF
 
-Start from the Matheron update:
-
 $$
 x \mid (y = y^*)
 \;\disteq\;
 x + C_{xy} C_{yy}^{-1}(y^* - y).
 $$
 
-Replace exact covariances by empirical ones:
-
 $$
 \mm{C}_{\rv{xy}} \;\to\; \widehat{\mm{C}}_{\rv{xy}},
 \qquad
 \mm{C}_{\rv{yy}} \;\to\; \widehat{\mm{C}}_{\rv{yy}},
 $$
-
-and interpret \(x, y\) as columns of the ensemble \((\mm{X}, \mm{Y})\).
 
 Then each analysis member satisfies
 
@@ -281,19 +267,18 @@ In words: **“The EnKF analysis is an empirical Matheron update.”**
 
 Exact GP / Kálmán:
 
-- Fit (Cholesky on \(m \times m\) matrix):
-  \( \mathcal{O}(m^3) \).
-- Predict at \(d\) points with variance:
-  \( \mathcal{O}(m^2 d)\) (or \( \mathcal{O}(m d)\) for mean-only).
+- Fit (Cholesky on $m \times m$ matrix):
+  $\mathcal{O}(m^3)$.
+- Predict at $d$ points with variance:
+  $\mathcal{O}(m^2 d)$
 
-Ensemble Kálmán (fixed ensemble size \(N\)):
+Ensemble Kálmán (fixed ensemble size $N$):
 
 - Fit / analysis:
-  \( \mathcal{O}(N^2 m + N^3)\).
+  $\mathcal{O}(N^2 m + N^3)$.
 - Predict / read-out of mean:
-  \( \mathcal{O}(N d)\).
+  $\mathcal{O}(N d)$.
 
-With localisation (LETKF): effectively linear in \(d\).
 
 ::: {.notes}
 Exact GP / Kálmán: cubic in `m` for training, at least quadratic in `m` for full predictive variance.
@@ -305,7 +290,7 @@ Localisation (LETKF) makes the update local in physical space, leading to effect
 
 ## 1D kriging experiment
 
-Prior GP on a grid of size \(d\):
+Prior GP on a grid of size $d$:
 
 $$
 x \sim \Normal(0, \mm{K}),
@@ -316,13 +301,15 @@ x \sim \Normal(0, \mm{K}),
 \right).
 $$
 
-Noisy point observations at \(m = d/5\) locations:
+Noisy point observations at $m = d/5$ locations:
 
 $$
 \rv{y} = \mm{H} \rv{x} + \rv{\eta},
 \qquad
 \rv{\eta} \sim \Normal(0, \tau^2 \mm{I}).
 $$
+
+## 1D kriging experiment
 
 We compare:
 
