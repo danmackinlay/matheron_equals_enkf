@@ -71,7 +71,7 @@ def task_timing_obs_csv():
 
     return {
         "actions": [
-            f"uv run python {SCRIPTS_DIR}/bench.py "
+            f"uv run python -m da_gp.scripts.bench "
             f"--n_obs_grid {obs_args} "
             f"--grid_size_fixed 2000 "
             f"--backends {backends_args} "
@@ -106,7 +106,7 @@ def task_timing_dim_csv():
 
     return {
         "actions": [
-            f"uv run python {SCRIPTS_DIR}/bench.py "
+            f"uv run python -m da_gp.scripts.bench "
             f"--dim_grid {dim_args} "
             f"--n_obs_fixed 1000 "
             f"--backends {backends_args} "
@@ -142,7 +142,7 @@ def task_timing_vs_observations():
 
     return {
         "actions": [
-            f"uv run python {SCRIPTS_DIR}/plot_timing.py {csv_file} --output-dir {FIGURES_DIR} --log-level {LOG_LEVEL}"
+            f"uv run python -m da_gp.scripts.plot_timing {csv_file} --output-dir {FIGURES_DIR} --log-level {LOG_LEVEL}"
         ],
         "targets": [str(pdf_file)],
         "file_dep": [
@@ -162,7 +162,7 @@ def task_timing_vs_dimensions():
 
     return {
         "actions": [
-            f"uv run python {SCRIPTS_DIR}/plot_timing.py {csv_file} --output-dir {FIGURES_DIR} --log-level {LOG_LEVEL}"
+            f"uv run python -m da_gp.scripts.plot_timing {csv_file} --output-dir {FIGURES_DIR} --log-level {LOG_LEVEL}"
         ],
         "targets": [str(pdf_file)],
         "file_dep": [
@@ -181,7 +181,7 @@ def task_posterior_samples():
 
     return {
         "actions": [
-            f"uv run python {SCRIPTS_DIR}/plot_posterior.py --n_obs 50 --grid_size 1000 --log-level {LOG_LEVEL}"
+            f"uv run python -m da_gp.scripts.plot_posterior --n_obs 50 --grid_size 1000 --log-level {LOG_LEVEL}"
         ],
         "targets": [str(pdf_file)],
         "file_dep": [

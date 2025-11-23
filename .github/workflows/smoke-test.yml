@@ -32,7 +32,7 @@ jobs:
     
     - name: Generate tiny timing benchmark
       run: |
-        uv run python da_gp/scripts/bench.py \
+        uv run python -m da_gp.scripts.bench \
           --n_obs_grid 50 100 \
           --backends sklearn \
           --csv data/smoke_test.csv \
@@ -52,11 +52,11 @@ jobs:
     
     - name: Generate timing plots
       run: |
-        uv run python da_gp/scripts/plot_timing.py data/smoke_test.csv --output-dir figures
+        uv run python -m da_gp.scripts.plot_timing data/smoke_test.csv --output-dir figures
     
     - name: Generate posterior plot
       run: |
-        uv run python da_gp/scripts/plot_posterior.py --n_obs 20 --n_draws 10 --backends sklearn
+        uv run python -m da_gp.scripts.plot_posterior --n_obs 20 --n_draws 10 --backends sklearn
     
     - name: Check plots were generated
       run: |

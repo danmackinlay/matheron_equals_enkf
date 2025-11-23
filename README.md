@@ -142,7 +142,7 @@ uv run doit pdf             # full rebuild from scratch
 * You can smoke-test:
 
   ```bash
-  uv run python da_gp/scripts/bench.py \
+  uv run python -m da_gp.scripts.bench \
     --n_obs_grid 50 100 --grid_size_fixed 2000 \
     --backends sklearn dapper_enkf dapper_letkf \
     --csv /tmp/check.csv --repeats 1
@@ -151,51 +151,8 @@ uv run doit pdf             # full rebuild from scratch
   Then:
 
   ```bash
-  uv run python da_gp/scripts/plot_timing.py /tmp/check.csv --output-dir figures
+  uv run python -m da_gp.scripts.plot_timing /tmp/check.csv --output-dir figures
   ```
-
-### Legacy Manual Workflow
-
-
-<details>
-<summary>Click to expand manual workflow</summary>
-
-The following manual workflow still works but requires manual dependency tracking:
-
-```bash
-# Step 1: Generate comprehensive timing data (observation scaling)
-uv run python da_gp/scripts/bench.py \
-    --n_obs_grid 100 500 1000 2000 5000 \
-    --grid_size_fixed 2000 \
-    --backends sklearn dapper_enkf dapper_letkf \
-    --csv data/timing_obs.csv \
-    --repeats 5
-
-# Step 2: Generate dimension scaling timing data
-uv run python da_gp/scripts/bench.py \
-    --dim_grid 250 500 1000 2000 4000 \
-    --n_obs_fixed 1000 \
-    --backends sklearn dapper_enkf dapper_letkf \
-    --csv data/timing_dim.csv \
-    --repeats 5
-
-# Step 3: Create dual-curve timing plots (fit vs predict times)
-uv run python da_gp/scripts/plot_timing.py data/timing_obs.csv --output-dir figures
-uv run python da_gp/scripts/plot_timing.py data/timing_dim.csv --output-dir figures
-
-# Step 4: Generate the posterior comparison plot
-uv run python da_gp/scripts/plot_posterior.py --n_obs 50
-
-# Step 5: Build the paper
-latexmk -pdf main.tex
-```
-
-Output files used by main.tex:
-- `figures/timing_vs_observations.pdf` (fit + predict times vs # observations)
-- `figures/timing_vs_dimensions.pdf` (fit + predict times vs state dimension)
-- `figures/posterior_samples.pdf` (posterior comparison across all methods)
-
-</details>
 
 ## Logging Policy
 
@@ -205,8 +162,8 @@ Output files used by main.tex:
   - `--log-json` for JSON-formatted logs
 - Examples:
   ```bash
-  uv run python da_gp/scripts/bench.py --log-level=INFO
-  uv run python da_gp/scripts/plot_timing.py data/timing_obs.csv --log-level=DEBUG
+  uv run python -m da_gp.scripts.bench --log-level=INFO
+  uv run python -m da_gp.scripts.plot_timing data/timing_obs.csv --log-level=DEBUG
   ```
 
 From `doit`, logs default to WARNING. Set a different level temporarily:
@@ -244,12 +201,12 @@ Generate timing data with internal benchmarking and statistical robustness.
 
 ```bash
 # Observation scaling with 5 timing repeats per configuration
-uv run python da_gp/scripts/bench.py \
+uv run python -m da_gp.scripts.bench \
     --n_obs_grid 100 500 1000 --backends sklearn dapper_enkf dapper_letkf \
     --csv data/timing_results.csv --repeats 5
 
 # Dimension scaling
-uv run python da_gp/scripts/bench.py \
+uv run python -m da_gp.scripts.bench \
     --dim_grid 500 1000 2000 --n_obs_fixed 500 \
     --backends sklearn dapper_enkf --csv data/timing_dim.csv
 ```
@@ -266,13 +223,13 @@ Generate publication-quality plots from benchmark data.
 
 ```bash
 # NEW: Dual-curve timing plots with hardened validation and JMLR styling
-uv run python da_gp/scripts/plot_timing.py data/timing_results.csv --output-dir figures --colorblind-friendly
+uv run python -m da_gp.scripts.plot_timing data/timing_results.csv --output-dir figures --colorblind-friendly
 
 # Create the posterior samples plot with unified styling
-uv run python da_gp/scripts/plot_posterior.py --n_obs 50 --colorblind-friendly
+uv run python -m da_gp.scripts.plot_posterior --n_obs 50 --colorblind-friendly
 
 # Advanced timing plot options
-uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
+uv run python -m da_gp.scripts.plot_timing data/timing_results.csv \
     --fixed-n-obs 1000 --no-legend --output-dir figures
 ```
 
@@ -282,6 +239,48 @@ uv run python da_gp/scripts/plot_timing.py data/timing_results.csv \
 doit slides            # build only
 doit slides:serve=yes  # build + serve
 ```
+
+### Manual Workflow
+
+<details>
+<summary>Click to expand manual workflow</summary>
+
+The following manual workflow still works but requires manual dependency tracking:
+
+```bash
+# Step 1: Generate comprehensive timing data (observation scaling)
+uv run python -m da_gp.scripts.bench \
+    --n_obs_grid 100 500 1000 2000 5000 \
+    --grid_size_fixed 2000 \
+    --backends sklearn dapper_enkf dapper_letkf \
+    --csv data/timing_obs.csv \
+    --repeats 5
+
+# Step 2: Generate dimension scaling timing data
+uv run python -m da_gp.scripts.bench \
+    --dim_grid 250 500 1000 2000 4000 \
+    --n_obs_fixed 1000 \
+    --backends sklearn dapper_enkf dapper_letkf \
+    --csv data/timing_dim.csv \
+    --repeats 5
+
+# Step 3: Create dual-curve timing plots (fit vs predict times)
+uv run python -m da_gp.scripts.plot_timing data/timing_obs.csv --output-dir figures
+uv run python -m da_gp.scripts.plot_timing data/timing_dim.csv --output-dir figures
+
+# Step 4: Generate the posterior comparison plot
+uv run python -m da_gp.scripts.plot_posterior --n_obs 50
+
+# Step 5: Build the paper
+latexmk -pdf main.tex
+```
+
+Output files used by main.tex:
+- `figures/timing_vs_observations.pdf` (fit + predict times vs # observations)
+- `figures/timing_vs_dimensions.pdf` (fit + predict times vs state dimension)
+- `figures/posterior_samples.pdf` (posterior comparison across all methods)
+
+</details>
 
 ## Troubleshooting
 
@@ -318,8 +317,8 @@ These errors are **prevented by design** in the current functional implementatio
 **Cause**: Usually indicates shape mismatches or backend configuration issues.
 
 **Solution**:
-1. Run with verbose logging: `python -m da_gp.scripts.bench --backends sklearn --n_obs_grid 50 100 --csv test.csv` and check logs
-2. Test individual backends first: `da-gp --backend sklearn --n_obs 100 --verbose`
+1. Run with verbose logging: `uv run python -m da_gp.scripts.bench --backends sklearn --n_obs_grid 50 100 --csv test.csv` and check logs
+2. Test individual backends first: `uv run da-gp --backend sklearn --n_obs 100 --verbose`
 3. For DAPPER backends, ensure proper environment setup
 
 ## Licensing

@@ -44,14 +44,14 @@ jobs:
         mkdir -p data figures
 
         # Generate timing benchmark (small sweep for CI)
-        uv run python da_gp/scripts/bench.py --n_obs_grid 50 100 200 \
+        uv run python -m da_gp.scripts.bench --n_obs_grid 50 100 200 \
              --backends sklearn dapper_enkf --csv data/timing_ci.csv --repeats 2
 
         # Generate timing plots
-        uv run python da_gp/scripts/plot_timing.py data/timing_ci.csv --output-dir figures
+        uv run python -m da_gp.scripts.plot_timing data/timing_ci.csv --output-dir figures
 
         # Posterior plot
-        uv run python da_gp/scripts/plot_posterior.py --backends sklearn --n_obs 50
+        uv run python -m da_gp.scripts.plot_posterior --backends sklearn --n_obs 50
 
         # Check figures were generated
         ls -la figures/
