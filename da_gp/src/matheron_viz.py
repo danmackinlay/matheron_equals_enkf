@@ -169,7 +169,7 @@ def plot_matheron_stage_extruded(pos, Z_prior, Z_post, a, b, y_star):
     # ax.set_xlabel("grid coordinate (x-block | y-block)")
     # ax.set_ylabel("stage (0 = prior, 1 = posterior)")
     # ax.set_zlabel("value")
-    ax.set_title("Matheron update as path in stage")
+    # ax.set_title("Matheron update as path in stage")
 
     # Suppress tick labels (values are arbitrary)
     ax.set_xticklabels([])

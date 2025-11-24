@@ -13,6 +13,8 @@ format:
     logo: figures/csiro_logo.png
     # logo-height: 300px  # fruitless
     css: logo.css
+    pdf-max-pages-per-slide: 1
+    pdf-separate-fragments: false
 execute:
   echo: false
   warning: false
@@ -22,7 +24,7 @@ bibliography: refs.bib
 csl: minimalist.csl
 ---
 
-## Ensemble Kalman = Empirical Matheron
+## Striving for peace between ML and Geostats
 
 ![](/figures/Gaussian_Pixie_dust.jpeg)
 
@@ -283,13 +285,10 @@ Take the Matheron rule and plug in empirical covariance estimates. View `(x, y)`
 In words: **“The EnKF analysis is an empirical Matheron update.”**
 :::
 
-## Visualized 1
 
-![](/figures/matheron_3panel_3panel.png)
+## Path updates
 
-## Visualized 2
-
-![](/figures/matheron_3panel_stage.png)
+![](/figures/matheron_3panel_stage.png){ height=580px }
 
 ## Computational complexity
 
@@ -361,7 +360,7 @@ Code is in `da_gp/src` and the plotting scripts under `da_gp/scripts`.:contentRe
 
 ## Posterior samples
 
-![](figures/posterior_samples.png){width=90%}
+![](/figures/posterior_samples.png){width=90%}
 
 ::: {.notes}
 Posterior mean and samples for all three methods.
@@ -373,9 +372,9 @@ The important part is that ensemble-based methods produce qualitatively similar 
 
 ## Timing vs observations and dimension
 
-![](figures/timing_vs_observations.png){width=90%}
+![](/figures/timing_vs_observations.png){ width=80% }
 
-![](figures/timing_vs_dimensions.png){width=90%}
+![](/figures/timing_vs_dimensions.png){ width=80% }
 
 ::: {.notes}
 Top: times vs number of observations `m` at fixed `d`.
@@ -430,6 +429,6 @@ Single affine residual identity unifies a lot of algorithms across communities. 
 
 [https://github.com/danmackinlay/matheron_equals_enkf](https://github.com/danmackinlay/matheron_equals_enkf)
 
-![](/figures/qrcode.png)
+![](/figures/qrcode.png){ height=400px }
 
 ## References
