@@ -27,7 +27,7 @@ from typing import NamedTuple
 import numpy as np
 import pandas as pd
 
-from da_gp.logging_setup import get_logger, setup_logging
+from da_gp.src.logging_setup import get_logger, setup_logging
 from da_gp.src.gp_common import Problem, generate_experiment_data
 
 logger = get_logger(__name__)

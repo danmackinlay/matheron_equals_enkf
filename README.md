@@ -31,11 +31,8 @@ This project compares four different inference methods:
 - `dapper_letkf`: An implementation using the Local Ensemble Transform Kalman Filter (LETKF) from DAPPER. This method applies localization, only updating state variables using nearby observations, which is analogous to sparse or localized GP methods.
 - `matheron_ens`: hand rolled empirical Matheron update with random fourier features
 
-## Functional Architecture
+## Problem Specification
 
-The codebase uses a **side-effect-free functional design** to eliminate global state and ensure reliable experiments:
-
-### Problem Specification
 All functions receive explicit configuration through an immutable `Problem` dataclass:
 ```python
 from da_gp.src.gp_common import Problem
@@ -47,18 +44,6 @@ problem = Problem(
     rng=np.random.default_rng(42)  # Reproducible RNG
 )
 ```
-
-### Pure Functions
-- **No global variables**: Functions receive all data as explicit arguments
-- **No mutation**: Functions return new values instead of modifying state
-- **Deterministic**: Same inputs always produce identical outputs
-- **Parallelizable**: No shared state means no race conditions
-
-### Benefits
-- **Import-order independent**: No need to set global state before importing backends
-- **Test isolation**: Each test uses fresh `Problem` instances
-- **Easy scaling**: Straightforward to parallelize across processes
-- **Debuggable**: Clear data flow without hidden dependencies
 
 All backends follow the signature: `run(problem: Problem, **kwargs) -> dict`
 
@@ -136,52 +121,7 @@ uv run doit clean           # removes CSVs/figures/paper (tasks declare their ow
 uv run doit pdf             # full rebuild from scratch
 ```
 
-### Got only sklearn curves?
 
-* Ensure DAPPER backends are installed and listed in `BACKENDS`.
-* Ensure sweeps have ≥2 values (e.g., `OBS_SWEEP=[100, 500, 1000]`).
-* You can smoke-test:
-
-  ```bash
-  uv run python -m da_gp.scripts.bench \
-    --n_obs_grid 50 100 --grid_size_fixed 2000 \
-    --backends sklearn dapper_enkf dapper_letkf matheron_ens \
-    --csv /tmp/check.csv --repeats 1
-  ```
-
-  Then:
-
-  ```bash
-  uv run python -m da_gp.scripts.plot_timing /tmp/check.csv --output-dir figures
-  ```
-
-## Logging Policy
-
-- We use Python's `logging` for all diagnostics. No `print` in library code.
-- CLIs accept logging flags:
-  - `--log-level {CRITICAL,ERROR,WARNING,INFO,DEBUG}` (default: WARNING)
-  - `--log-json` for JSON-formatted logs
-- Examples:
-  ```bash
-  uv run python -m da_gp.scripts.bench --log-level=INFO
-  uv run python -m da_gp.scripts.plot_timing data/timing_obs.csv --log-level=DEBUG
-  ```
-
-From `doit`, logs default to WARNING. Set a different level temporarily:
-
-```bash
-LOG_LEVEL=INFO uv run doit pdf
-```
-
-## Testing
-
-```bash
-# Run all tests
-uv run pytest da_gp/tests/ -v
-
-# Run tests for a specific file
-uv run pytest da_gp/tests/test_shapes.py -v
-```
 
 ## CLI Reference
 
@@ -241,6 +181,35 @@ doit slides            # build only
 doit slides:serve=yes  # build + serve
 ```
 
+## Logging
+
+- CLIs accept logging flags:
+  - `--log-level {CRITICAL,ERROR,WARNING,INFO,DEBUG}` (default: WARNING)
+  - `--log-json` for JSON-formatted logs
+- Examples:
+  ```bash
+  uv run python -m da_gp.scripts.bench --log-level=INFO
+  uv run python -m da_gp.scripts.plot_timing data/timing_obs.csv --log-level=DEBUG
+  ```
+
+From `doit`, logs default to WARNING. Set a different level temporarily:
+
+```bash
+LOG_LEVEL=INFO uv run doit pdf
+```
+
+
+## Testing
+
+```bash
+# Run all tests
+uv run pytest da_gp/tests/ -v
+
+# Run tests for a specific file
+uv run pytest da_gp/tests/test_shapes.py -v
+```
+
+
 ### Manual Workflow
 
 <details>
@@ -283,44 +252,26 @@ Output files used by main.tex:
 
 </details>
 
-## Troubleshooting
+## Gotchas
 
-### Shape/Broadcast Errors (RESOLVED)
+### Got only sklearn curves?
 
-**Previous Problem**: Broadcast errors like `ValueError: operands could not be broadcast together with shapes` occurred when grid sizes changed after backend imports.
+* Ensure DAPPER backends are installed and listed in `BACKENDS`.
+* Ensure sweeps have ≥2 values (e.g., `OBS_SWEEP=[100, 500, 1000]`).
+* You can smoke-test:
 
-**Solution**: The codebase now uses a **functional architecture** that completely eliminates these errors:
+  ```bash
+  uv run python -m da_gp.scripts.bench \
+    --n_obs_grid 50 100 --grid_size_fixed 2000 \
+    --backends sklearn dapper_enkf dapper_letkf matheron_ens \
+    --csv /tmp/check.csv --repeats 1
+  ```
 
-- All functions are **side-effect-free** and receive explicit `Problem` arguments
-- No global state means no import-order dependencies
-- Each experiment uses fresh, immutable `Problem` ipentynstances
+  Then:
 
-**Modern usage** (no global state):
-```python
-from da_gp.src.gp_common import Problem
-from da_gp.src.gp_sklearn import run
-
-# Create problem - no global state to manage
-problem = Problem(grid_size=1000, n_obs=100, noise_std=0.1)
-result = run(problem)
-
-# Different problem sizes just work
-problem2 = Problem(grid_size=2000, n_obs=100, noise_std=0.1)
-result2 = run(problem2)  # No conflicts!
-```
-
-These errors are **prevented by design** in the current functional implementation.
-
-### Timing Benchmark Failures
-
-**Problem**: Benchmark runs return `inf` timing values or crash unexpectedly.
-
-**Cause**: Usually indicates shape mismatches or backend configuration issues.
-
-**Solution**:
-1. Run with verbose logging: `uv run python -m da_gp.scripts.bench --backends sklearn --n_obs_grid 50 100 --csv test.csv` and check logs
-2. Test individual backends first: `uv run da-gp --backend sklearn --n_obs 100 --verbose`
-3. For DAPPER backends, ensure proper environment setup
+  ```bash
+  uv run python -m da_gp.scripts.plot_timing /tmp/check.csv --output-dir figures
+  ```
 
 ## Licensing
 

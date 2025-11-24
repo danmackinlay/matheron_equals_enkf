@@ -1,0 +1,5 @@
+/* Needed to force quarto to play nice https: //github.com/quarto-dev/quarto-cli/discussions/2209  */
+.reveal .slide-logo {
+  max-height: 4em !important;
+  max-width: unset !important;
+}

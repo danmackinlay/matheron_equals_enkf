@@ -23,7 +23,7 @@ from typing import Any
 
 import numpy as np
 
-from da_gp.logging_setup import get_logger, setup_logging
+from da_gp.src.logging_setup import get_logger, setup_logging
 
 logger = get_logger(__name__)
 

@@ -24,8 +24,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Import unified styling
-from da_gp.figstyle import setup_figure_style
-from da_gp.logging_setup import get_logger, setup_logging
+from da_gp.src.figstyle import setup_figure_style
+from da_gp.src.logging_setup import get_logger, setup_logging
 from da_gp.src.gp_common import Problem, generate_experiment_data
 
 logger = get_logger(__name__)
