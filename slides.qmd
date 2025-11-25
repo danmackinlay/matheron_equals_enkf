@@ -169,6 +169,20 @@ Standard Kalman posterior updated ("analysis") step.
 Conceptually this is the same Gaussian conditioning problem as the Matheron update, but expressed via means and covariances rather than explicit samples.
 :::
 
+## Kalman update as GP regression
+
+For any discrete set of sites GP regression is just Gaussian conditioning with a sparse $\mm{H}$, e.g.
+
+$$
+\mm{H}=\begin{bmatrix}
+1 & 0 & 0 &\cdots &0& 0\\
+0 & 0 & 1 &\cdots &0&0\\
+\vdots & \vdots & \vdots &\ddots &\vdots&\vdots\\
+0 & 0 & 0 &\cdots &1&0\\
+\end{bmatrix}
+$$
+
+
 ## Ensemble representation
 
 $$
