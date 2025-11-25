@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from da_gp.src.gp_common import Problem
+from da_gp.gp_common import Problem
 
 
 @pytest.mark.parametrize("grid_size", [500, 1000, 4000])
@@ -130,8 +130,8 @@ def test_dimension_scaling_benchmark():
 
 def test_problem_consistency():
     """Test that Problem instances ensure consistency and prevent mismatch errors."""
-    from da_gp.src.gp_common import generate_experiment_data
-    from da_gp.src.gp_sklearn import run
+    from da_gp.gp_common import generate_experiment_data
+    from da_gp.gp_sklearn import run
 
     # Create problem and generate data
     problem1 = Problem(
@@ -154,7 +154,7 @@ def test_problem_consistency():
 
 def test_functional_determinism():
     """Test that functional approach gives deterministic results."""
-    from da_gp.src.gp_sklearn import run
+    from da_gp.gp_sklearn import run
 
     # Same problem, same seed should give identical results
     problem = Problem(
@@ -178,7 +178,7 @@ def test_functional_determinism():
 def test_single_backend_different_sizes(backend, grid_size):
     """Test individual backend with different grid sizes using functional approach."""
     if backend == "sklearn":
-        from da_gp.src.gp_sklearn import run
+        from da_gp.gp_sklearn import run
 
     # Create problem for this grid size
     problem = Problem(

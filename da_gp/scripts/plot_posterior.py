@@ -24,9 +24,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Import unified styling
-from da_gp.src.figstyle import setup_figure_style
-from da_gp.src.logging_setup import get_logger, setup_logging
-from da_gp.src.gp_common import Problem, generate_experiment_data
+from da_gp.figstyle import setup_figure_style
+from da_gp.logging_setup import get_logger, setup_logging
+from da_gp.gp_common import Problem, generate_experiment_data
 
 logger = get_logger(__name__)
 
@@ -41,17 +41,17 @@ def run_backend(
 ):
     """Run a specific backend with given data."""
     if backend == "sklearn":
-        from da_gp.src.gp_sklearn import run
+        from da_gp.gp_sklearn import run
 
         return run(problem, truth=truth, mask=mask, obs=obs, n_ens=n_draws)
     if backend == "dapper_enkf":
-        from da_gp.src.gp_dapper import run_enkf
+        from da_gp.gp_dapper import run_enkf
 
         return run_enkf(
             problem, n_ens=n_draws, truth=truth, mask=mask, obs=obs, seed=42
         )
     if backend == "dapper_letkf":
-        from da_gp.src.gp_dapper import run_letkf
+        from da_gp.gp_dapper import run_letkf
 
         return run_letkf(
             problem, n_ens=n_draws, truth=truth, mask=mask, obs=obs, seed=42

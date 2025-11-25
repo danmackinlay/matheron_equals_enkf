@@ -24,8 +24,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Import unified figure styling
-from da_gp.src.figstyle import setup_figure_style
-from da_gp.src.logging_setup import get_logger, setup_logging
+from da_gp.figstyle import setup_figure_style
+from da_gp.logging_setup import get_logger, setup_logging
 
 logger = get_logger(__name__)
 

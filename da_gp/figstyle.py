@@ -18,7 +18,7 @@
 
 import matplotlib.pyplot as plt
 
-from da_gp.src.logging_setup import get_logger
+from da_gp.logging_setup import get_logger
 
 logger = get_logger(__name__)
 

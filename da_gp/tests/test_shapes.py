@@ -19,7 +19,7 @@
 import numpy as np
 import pytest
 
-from da_gp.src.gp_common import (
+from da_gp.gp_common import (
     Problem,
     draw_prior,
     generate_experiment_data,
@@ -68,7 +68,7 @@ def test_generate_experiment_data_shapes():
 
 def test_sklearn_backend_shapes():
     """Test sklearn backend output shapes using Problem."""
-    from da_gp.src.gp_sklearn import run
+    from da_gp.gp_sklearn import run
 
     problem = Problem(grid_size=1000, n_obs=50, rng=np.random.default_rng(42))
     result = run(problem, n_ens=10)
@@ -84,7 +84,7 @@ def test_sklearn_backend_shapes():
 
 def test_dapper_backend_shapes():
     """Test DAPPER backend output shapes using Problem."""
-    from da_gp.src.gp_dapper import run
+    from da_gp.gp_dapper import run
 
     problem = Problem(grid_size=1000, n_obs=50, rng=np.random.default_rng(42))
 

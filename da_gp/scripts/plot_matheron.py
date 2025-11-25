@@ -37,9 +37,9 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from da_gp.src.figstyle import setup_figure_style
-from da_gp.src.logging_setup import get_logger, setup_logging
-from da_gp.src.matheron_viz import (
+from da_gp.figstyle import setup_figure_style
+from da_gp.logging_setup import get_logger, setup_logging
+from da_gp.matheron_viz import (
     make_matheron_demo,
     plot_matheron_stage_extruded,
     plot_matheron_three_panel,

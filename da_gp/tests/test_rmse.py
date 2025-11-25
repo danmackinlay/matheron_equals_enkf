@@ -19,7 +19,7 @@
 import numpy as np
 import pytest
 
-from da_gp.src.gp_common import Problem, generate_experiment_data
+from da_gp.gp_common import Problem, generate_experiment_data
 
 
 def test_observation_rmse():
@@ -40,7 +40,7 @@ def test_observation_rmse():
 
 def test_sklearn_rmse_reasonable():
     """Test that sklearn GP produces reasonable RMSE."""
-    from da_gp.src.gp_sklearn import run
+    from da_gp.gp_sklearn import run
 
     problem = Problem(
         grid_size=1000, n_obs=200, noise_std=0.1, rng=np.random.default_rng(42)
@@ -59,7 +59,7 @@ def test_sklearn_rmse_reasonable():
 
 def test_prior_spread():
     """Test that prior samples have expected spread."""
-    from da_gp.src.gp_common import draw_prior
+    from da_gp.gp_common import draw_prior
 
     rng = np.random.default_rng(42)
     samples = [draw_prior(1000, np.random.default_rng(i)) for i in range(50)]
@@ -78,7 +78,7 @@ def test_sklearn_scaling(n_obs):
     """Test sklearn performance scales as expected."""
     import time
 
-    from da_gp.src.gp_sklearn import run
+    from da_gp.gp_sklearn import run
 
     problem = Problem(
         grid_size=1000, n_obs=n_obs, noise_std=0.1, rng=np.random.default_rng(42)
@@ -100,7 +100,7 @@ def test_sklearn_scaling(n_obs):
 
 def test_rmse_decreases_with_observations():
     """Test that RMSE generally decreases with more observations."""
-    from da_gp.src.gp_sklearn import run
+    from da_gp.gp_sklearn import run
 
     # Use consistent problem specification for fair comparison
     problem_few = Problem(

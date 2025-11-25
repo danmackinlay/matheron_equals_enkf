@@ -22,9 +22,9 @@ import pytest
 
 def test_backends_match():
     """Test that different backends produce consistent results."""
-    from da_gp.src.gp_common import Problem, generate_experiment_data
-    from da_gp.src.gp_dapper import run_enkf
-    from da_gp.src.gp_sklearn import run as run_sklearn
+    from da_gp.gp_common import Problem, generate_experiment_data
+    from da_gp.gp_dapper import run_enkf
+    from da_gp.gp_sklearn import run as run_sklearn
 
     # Test with moderate number of observations
     problem = Problem(
@@ -58,8 +58,8 @@ def test_backends_match():
 
 def test_backend_output_format():
     """Test that backends return required format."""
-    from da_gp.src.gp_common import Problem
-    from da_gp.src.gp_sklearn import run as run_sklearn
+    from da_gp.gp_common import Problem
+    from da_gp.gp_sklearn import run as run_sklearn
 
     problem = Problem(
         grid_size=1000, n_obs=100, noise_std=0.1, rng=np.random.default_rng(42)
@@ -80,7 +80,7 @@ def test_backend_output_format():
 
 def test_truth_and_mask_consistency():
     """Test that truth/mask generation is consistent with same problem specifications."""
-    from da_gp.src.gp_common import Problem, generate_experiment_data
+    from da_gp.gp_common import Problem, generate_experiment_data
 
     # Test with consistent problem specifications
     problem1 = Problem(
@@ -100,7 +100,7 @@ def test_truth_and_mask_consistency():
 
 def test_observations_generation():
     """Test observation generation with different noise realizations."""
-    from da_gp.src.gp_common import Problem, generate_experiment_data, make_observations
+    from da_gp.gp_common import Problem, generate_experiment_data, make_observations
 
     # Generate consistent truth and mask
     problem = Problem(

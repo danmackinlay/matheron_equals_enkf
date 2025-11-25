@@ -27,8 +27,8 @@ from typing import NamedTuple
 import numpy as np
 import pandas as pd
 
-from da_gp.src.logging_setup import get_logger, setup_logging
-from da_gp.src.gp_common import Problem, generate_experiment_data
+from da_gp.logging_setup import get_logger, setup_logging
+from da_gp.gp_common import Problem, generate_experiment_data
 
 logger = get_logger(__name__)
 
@@ -47,19 +47,19 @@ class Timing(NamedTuple):
 def get_backend_runner(backend: str):
     """Get the appropriate backend runner function."""
     if backend == "sklearn":
-        from da_gp.src.gp_sklearn import run
+        from da_gp.gp_sklearn import run
 
         return run
     if backend == "dapper_enkf":
-        from da_gp.src.gp_dapper import run_enkf
+        from da_gp.gp_dapper import run_enkf
 
         return run_enkf
     if backend == "dapper_letkf":
-        from da_gp.src.gp_dapper import run_letkf
+        from da_gp.gp_dapper import run_letkf
 
         return run_letkf
     if backend == "matheron_ens":
-        from da_gp.src.gp_matheron_ens import run
+        from da_gp.gp_matheron_ens import run
 
         return run
     raise ValueError(f"Unknown backend: {backend}")
