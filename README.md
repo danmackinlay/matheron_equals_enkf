@@ -176,9 +176,17 @@ uv run python -m da_gp.scripts.plot_timing data/timing_results.csv \
 
 ### Slides
 
+Generate the RevealJS slide deck from `slides.qmd`:
+
 ```bash
-doit slides            # build only
-doit slides:serve=yes  # build + serve
+doit slides              # build slides.html only
+doit slides:serve=yes    # build + serve with live preview
+doit slides_pdf          # convert slides.html to slides.pdf using decktape
+```
+
+**Note**: PDF generation requires [decktape](https://github.com/astefanutti/decktape) to be installed:
+```bash
+npm install -g decktape
 ```
 
 ## Logging

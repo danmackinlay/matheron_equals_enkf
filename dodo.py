@@ -300,3 +300,23 @@ def task_slides():
         "clean": True,
         "verbosity": 2,
     }
+
+
+def task_slides_pdf():
+    """
+    Convert slides.html to slides.pdf using decktape.
+
+    Usage:
+        doit slides_pdf    # convert slides.html to PDF
+
+    Requires decktape to be installed:
+        npm install -g decktape
+    """
+    return {
+        "actions": ["decktape slides.html slides.pdf"],
+        "file_dep": ["slides.html"],
+        "targets": ["slides.pdf"],
+        "task_dep": ["slides"],  # ensures slides.html exists
+        "clean": True,
+        "verbosity": 2,
+    }
